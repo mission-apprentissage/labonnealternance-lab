@@ -1,0 +1,413 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`zodToMongoSchema > should convert email_denied schema 1`] = `
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+    },
+    "created_at": {
+      "bsonType": "date",
+      "description": "Date d'ajout en base de données",
+    },
+    "email": {
+      "bsonType": "string",
+      "description": "L'email rejetée",
+    },
+    "reason": {
+      "bsonType": "string",
+      "enum": [
+        "unsubscribe",
+      ],
+    },
+    "updated_at": {
+      "bsonType": "date",
+      "description": "Date de mise à jour en base de données",
+    },
+  },
+  "required": [
+    "_id",
+    "email",
+    "reason",
+    "created_at",
+  ],
+}
+`;
+
+exports[`zodToMongoSchema > should convert email_events schema 1`] = `
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+    },
+    "created_at": {
+      "bsonType": "date",
+    },
+    "delivered_at": {
+      "anyOf": [
+        {
+          "bsonType": "date",
+        },
+        {
+          "bsonType": "null",
+        },
+      ],
+    },
+    "email": {
+      "bsonType": "string",
+      "description": "Addresse email",
+    },
+    "errors": {
+      "bsonType": "array",
+      "items": {
+        "additionalProperties": false,
+        "bsonType": "object",
+        "properties": {
+          "message": {
+            "bsonType": "string",
+          },
+          "type": {
+            "bsonType": "string",
+            "enum": [
+              "fatal",
+              "soft_bounce",
+              "hard_bounce",
+              "complaint",
+              "invalid_email",
+              "blocked",
+              "error",
+            ],
+          },
+        },
+      },
+    },
+    "messageId": {
+      "bsonType": [
+        "string",
+        "null",
+      ],
+    },
+    "opened_at": {
+      "anyOf": [
+        {
+          "bsonType": "date",
+        },
+        {
+          "bsonType": "null",
+        },
+      ],
+    },
+    "template": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "name": {
+              "bsonType": "string",
+            },
+            "to": {
+              "bsonType": "string",
+            },
+            "token": {
+              "bsonType": "string",
+            },
+          },
+          "required": [
+            "name",
+            "to",
+            "token",
+          ],
+        },
+        {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "name": {
+              "bsonType": "string",
+            },
+            "to": {
+              "bsonType": "string",
+            },
+            "token": {
+              "bsonType": "string",
+            },
+          },
+          "required": [
+            "name",
+            "to",
+            "token",
+          ],
+        },
+        {
+          "additionalProperties": false,
+          "bsonType": "object",
+          "properties": {
+            "comment": {
+              "bsonType": "string",
+            },
+            "from": {
+              "bsonType": "string",
+            },
+            "name": {
+              "bsonType": "string",
+            },
+            "to": {
+              "bsonType": "string",
+            },
+          },
+          "required": [
+            "name",
+            "to",
+            "from",
+            "comment",
+          ],
+        },
+      ],
+    },
+    "updated_at": {
+      "bsonType": "date",
+    },
+  },
+  "required": [
+    "_id",
+    "email",
+    "template",
+    "created_at",
+    "updated_at",
+    "opened_at",
+    "delivered_at",
+    "messageId",
+    "errors",
+  ],
+}
+`;
+
+exports[`zodToMongoSchema > should convert organisations schema 1`] = `
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+    },
+    "created_at": {
+      "bsonType": "date",
+      "description": "Date d'ajout en base de données",
+    },
+    "habilitations": {
+      "bsonType": "array",
+      "items": {
+        "bsonType": "string",
+        "enum": [
+          "jobs:write",
+        ],
+      },
+    },
+    "nom": {
+      "bsonType": "string",
+      "description": "Nom de l'organisation",
+      "maxLength": 100,
+      "minLength": 2,
+    },
+    "slug": {
+      "bsonType": "string",
+      "description": "Slug de l'organisation",
+      "maxLength": 100,
+      "minLength": 2,
+    },
+    "updated_at": {
+      "bsonType": "date",
+      "description": "Date de mise à jour en base de données",
+    },
+  },
+  "required": [
+    "_id",
+    "nom",
+    "slug",
+    "habilitations",
+    "updated_at",
+    "created_at",
+  ],
+}
+`;
+
+exports[`zodToMongoSchema > should convert sessions schema 1`] = `
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+    },
+    "created_at": {
+      "bsonType": "date",
+      "description": "Date d'ajout en base de données",
+    },
+    "email": {
+      "bsonType": "string",
+    },
+    "expires_at": {
+      "bsonType": "date",
+      "description": "Date d'expiration",
+    },
+    "updated_at": {
+      "bsonType": "date",
+      "description": "Date de mise à jour en base de données",
+    },
+  },
+  "required": [
+    "_id",
+    "email",
+    "updated_at",
+    "created_at",
+    "expires_at",
+  ],
+}
+`;
+
+exports[`zodToMongoSchema > should convert users schema 1`] = `
+{
+  "additionalProperties": false,
+  "bsonType": "object",
+  "properties": {
+    "_id": {
+      "bsonType": "objectId",
+    },
+    "activite": {
+      "anyOf": [
+        {
+          "bsonType": "string",
+        },
+        {
+          "bsonType": "null",
+        },
+      ],
+    },
+    "api_keys": {
+      "bsonType": "array",
+      "items": {
+        "additionalProperties": false,
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "objectId",
+          },
+          "created_at": {
+            "bsonType": "date",
+          },
+          "expires_at": {
+            "bsonType": "date",
+          },
+          "key": {
+            "bsonType": "string",
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "bsonType": "date",
+              },
+              {
+                "bsonType": "null",
+              },
+            ],
+          },
+          "name": {
+            "bsonType": [
+              "string",
+              "null",
+            ],
+          },
+        },
+        "required": [
+          "_id",
+          "name",
+          "key",
+          "last_used_at",
+          "expires_at",
+          "created_at",
+        ],
+      },
+    },
+    "cas_usage": {
+      "anyOf": [
+        {
+          "bsonType": "string",
+        },
+        {
+          "bsonType": "null",
+        },
+      ],
+    },
+    "cgu_accepted_at": {
+      "bsonType": "date",
+    },
+    "created_at": {
+      "bsonType": "date",
+      "description": "Date d'ajout en base de données",
+    },
+    "email": {
+      "bsonType": "string",
+      "description": "Email de l'utilisateur",
+    },
+    "is_admin": {
+      "bsonType": "bool",
+    },
+    "objectif": {
+      "anyOf": [
+        {
+          "bsonType": "string",
+          "enum": [
+            "fiabiliser",
+            "concevoir",
+          ],
+        },
+        {
+          "bsonType": "null",
+        },
+      ],
+    },
+    "organisation": {
+      "bsonType": [
+        "string",
+        "null",
+      ],
+    },
+    "type": {
+      "bsonType": "string",
+      "enum": [
+        "operateur_public",
+        "organisme_formation",
+        "entreprise",
+        "editeur_logiciel",
+        "organisme_financeur",
+        "apprenant",
+        "mission_apprentissage",
+        "autre",
+      ],
+    },
+    "updated_at": {
+      "bsonType": "date",
+      "description": "Date de mise à jour en base de données",
+    },
+  },
+  "required": [
+    "_id",
+    "organisation",
+    "email",
+    "type",
+    "activite",
+    "objectif",
+    "cas_usage",
+    "cgu_accepted_at",
+    "is_admin",
+    "api_keys",
+    "updated_at",
+    "created_at",
+  ],
+}
+`;
