@@ -13,7 +13,7 @@ readonly ROOT_DIR="$(dirname "${BIN_DIR}")"
 readonly VAULT_DIR="${ROOT_DIR}/.infra/vault"
 readonly VAULT_FILE="${VAULT_DIR}/vault.yml"
 
-DOCUMENT_CONTENT=$(op --account mission-apprentissage document get ".vault-password-${PRODUCT_NAME}" --vault "${OP_VAULT_NAME}" || echo "")
+DOCUMENT_CONTENT=$(op document get .vault-password-${PRODUCT_NAME} --vault "mna-vault-passwords-common" --account mission-apprentissage.1password.com || echo "")
 vault_password_file="${VAULT_DIR}/.vault-password.gpg"
 previous_vault_password_file="${VAULT_DIR}/.vault-password-previous.gpg"
 

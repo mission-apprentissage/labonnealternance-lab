@@ -5,13 +5,11 @@ _product_completion() {
   typeset -A opt_args
   local -a commands=(
    "help:'Show help message'"
-   "bin\:setup:'Installs product-tmpl binary with zsh completion on system'"
+   "bin\:setup:'Installs mna-lab binary with zsh completion on system'"
    "init\:env:'Update local env files using values from vault file'"
    "release\:app:'Build & Push Docker image releases'"
    "release\:interactive:'Interactivelly Build & Push Docker image releases'"
    "deploy:'Deploy application to <env>'"
-   "preview\:build:'Build preview from open pull-requests'"
-   "preview\:cleanup:'Remove preview from close pull-requests'"
    "vault\:init:'Fetch initial vault-password from template-apprentissage'"
    "vault\:edit:'Edit vault file'"
    "vault\:password:'Get vault password'"
@@ -19,6 +17,8 @@ _product_completion() {
    "seed\:apply:'Apply seed to a database'"
    "deploy\:log\:encrypt:'Encrypt Github ansible logs'"
    "deploy\:log\:dencrypt:'Decrypt Github ansible logs'"
+   "log\:encrypt:'Encrypt log file'"
+   "log\:dencrypt:'Decrypt log file'"
   )
 
   # Set completion behavior based on the current word
