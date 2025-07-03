@@ -13,10 +13,10 @@ function runPlaybook() {
   local ansible_extra_opts=()
   if [[ -z "${ANSIBLE_BECOME_PASS:-}" ]]; then
     if [[ $* != *"pass"* ]]; then
-        local become_pass=$(op --account mission-apprentissage read op://Private/${PRODUCT_NAME}-$ENV_FILTER/password 2> /dev/null);
+        local become_pass=$(op --account mission-apprentissage read op://Private/lab-$ENV_FILTER/password 2> /dev/null);
         if [ -z $become_pass ]; then
           echo "Si vous avez 1password CLI, il est possible de récupérer le password automatiquement"
-          echo "Pour cela, ajouter le dans le vault "Private" l'item ${PRODUCT_NAME}-$ENV_FILTER avec le champs password"
+          echo "Pour cela, ajouter le dans le vault "Private" l'item lab-$ENV_FILTER avec le champs password"
           ansible_extra_opts+=("--ask-become-pass")
         else
           echo "Récupération du mot de passe 'become_pass' depuis 1password" 
@@ -29,10 +29,10 @@ function runPlaybook() {
 
   if [[ -z "${ANSIBLE_REMOTE_USER:-}" ]]; then
     if [[ $* != *"--user"* ]]; then
-        local username=$(op --account mission-apprentissage read op://Private/${PRODUCT_NAME}-$ENV_FILTER/username 2> /dev/null);
+        local username=$(op --account mission-apprentissage read op://Private/lab-$ENV_FILTER/username 2> /dev/null);
         if [ -z $username ]; then
           echo "Si vous avez 1password CLI, il est possible de récupérer le username automatiquement"
-          echo "Pour cela, ajouter le dans le vault "Private" l'item ${PRODUCT_NAME}-$ENV_FILTER avec le champs username"
+          echo "Pour cela, ajouter le dans le vault "Private" l'item lab-$ENV_FILTER avec le champs username"
         else
           echo "Récupération du username depuis 1password" 
           ansible_extra_opts+=("--user" $username)

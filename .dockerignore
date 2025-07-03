@@ -1,5 +1,7 @@
 *
 
+!/server
+
 !/server/src
 !/server/static
 !/server/types

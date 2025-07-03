@@ -4,7 +4,7 @@ set -euo pipefail
 
 function Help() {
    echo "Commands"
-   echo "  bin:setup                                  Installs mna-${PRODUCT_NAME} binary with zsh completion on system"
+   echo "  bin:setup                                  Installs mna-lab binary with zsh completion on system"
    echo "  init:env                                   Update local env files using values from vault file"
    echo "  release:interactive                        Build & Push Docker image releases"
    echo "  release:app                                Build & Push Docker image releases"
@@ -23,10 +23,10 @@ function Help() {
 }
 
 function bin:setup() {
-  sudo ln -fs "${ROOT_DIR}/.bin/product" "/usr/local/bin/mna-${PRODUCT_NAME}"
+  sudo ln -fs "${ROOT_DIR}/.bin/product" "/usr/local/bin/mna-lab"
 
   sudo mkdir -p /usr/local/share/zsh/site-functions
-  sudo ln -fs "${ROOT_DIR}/.bin/zsh-completion" "/usr/local/share/zsh/site-functions/_mna-${PRODUCT_NAME}"
+  sudo ln -fs "${ROOT_DIR}/.bin/zsh-completion" "/usr/local/share/zsh/site-functions/_mna-lab"
   sudo rm -f ~/.zcompdump*
 }
 

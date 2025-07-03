@@ -8,29 +8,21 @@
   },
   "group": {
     "production": {
-      "targets": ["server", "ui-production"]
-    },
-    "recette": {
-      "targets": ["server", "ui-recette"]
-    },
-    "preview": {
-      "targets": ["server", "ui-preview"]
+      "targets": ["server"]
     },
     "local": {
-      "targets": ["server", "ui-local"]
+      "targets": ["server"]
     }
   },
   "target": {
     "common": {
       "args": {
-        "PUBLIC_VERSION": "${VERSION}",
-        "PUBLIC_PRODUCT_NAME": "${PRODUCT_NAME}",
-        "PUBLIC_REPO_NAME": "${REPO_NAME}"
+        "PUBLIC_VERSION": "${VERSION}"
       },
       "dockerfile": "Dockerfile",
-      "platforms": ["linux/amd64"],
+      "platforms": ["linux/amd64", "linux/arm64"],
       "labels": {
-        "org.opencontainers.image.source": "https://github.com/mission-apprentissage/${REPO_NAME}",
+        "org.opencontainers.image.source": "https://github.com/mission-apprentissage/labonnealternance-lab",
         "org.opencontainers.image.licenses": "MIT"
       },
       "cache-from": ["type=gha,scope=${DEPS_ID}"],
@@ -39,31 +31,13 @@
     "server": {
       "inherits": ["common"],
       "tags": [
-        "ghcr.io/mission-apprentissage/product_${PRODUCT_NAME}_server:${VERSION}",
-        "ghcr.io/mission-apprentissage/product_${PRODUCT_NAME}_server:${CHANNEL}"
+        "ghcr.io/mission-apprentissage/mna_lab_server:${VERSION}",
+        "ghcr.io/mission-apprentissage/mna_lab_server:${CHANNEL}"
       ],
       "labels": {
         "org.opencontainers.image.description": "Server"
       },
       "target": "server"
-    },
-    "ui": {
-      "inherits": ["common"],
-      "matrix": {
-        "ENV": ["production", "recette", "preview", "local"]
-      },
-      "name": "ui-${ENV}",
-      "args": {
-        "PUBLIC_ENV": "${ENV}"
-      },
-      "tags": [
-        "ghcr.io/mission-apprentissage/product_${PRODUCT_NAME}_ui:${VERSION}-${ENV}",
-        "ghcr.io/mission-apprentissage/product_${PRODUCT_NAME}_ui:${CHANNEL}-${ENV}"
-      ],
-      "labels": {
-        "org.opencontainers.image.description": "Ui"
-      },
-      "target": "ui"
     }
   }
 }
