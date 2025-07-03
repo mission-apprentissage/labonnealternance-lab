@@ -50,7 +50,6 @@ elif [ ! -z "$DOCUMENT_CONTENT" ] && [ "$DOCUMENT_CONTENT" != "$(cat "${vault_pa
     delete_cleartext
 fi
 
-
 decrypt_password() {
   ## Decrypt
 
@@ -61,8 +60,6 @@ decrypt_password() {
     echo "not-yet-generated"
   fi
 
-  gpgconf --kill gpg-agent
 }
-
 
 decrypt_password
