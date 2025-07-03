@@ -11,4 +11,3 @@ ANSIBLE_CONFIG="${ROOT_DIR}/.infra/ansible/ansible.cfg" ansible all \
 
 echo "PUBLIC_VERSION=0.0.0-local" >> "${ROOT_DIR}/server/.env"
 echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> "${ROOT_DIR}/server/.env"
-

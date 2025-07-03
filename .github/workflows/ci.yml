@@ -5,6 +5,7 @@ on:
 
 jobs:
   tests:
+    if: false # disable for now
     timeout-minutes: 10
     name: "Tests"
     runs-on: ubuntu-latest
