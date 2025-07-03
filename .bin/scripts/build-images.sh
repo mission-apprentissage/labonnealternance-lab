@@ -24,7 +24,7 @@ if [[ $# == "0" ]]; then
 fi;
 
 set +e
-docker buildx create --name "product-${PRODUCT_NAME}" --driver docker-container --config "$SCRIPT_DIR/buildkitd.toml" 2> /dev/null
+docker buildx create --name "mna-lab" --driver docker-container --config "$SCRIPT_DIR/buildkitd.toml" 2> /dev/null
 set -e
 
 if [[ ! -z "${CI:-}" ]]; then
@@ -36,6 +36,6 @@ fi
 export CHANNEL=$(get_channel $VERSION)
 
 # "$@" is the list of environements
-docker buildx bake --builder "product-${PRODUCT_NAME}" --${mode} "$@"
-docker builder prune --builder "product-${PRODUCT_NAME}" --keep-storage 20GB --force
-docker buildx stop --builder "product-${PRODUCT_NAME}"
+docker buildx bake --builder "mna-lab" --${mode} "$@"
+docker builder prune --builder "mna-lab" --keep-storage 20GB --force
+docker buildx stop --builder "mna-lab"
