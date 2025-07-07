@@ -37,7 +37,7 @@ services:
         tag: docker.json.lab.{{env_type}}.server
         fluentd-async: "true"
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:5000/api/healthcheck"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/healthcheck"]
       interval: 10s
       timeout: 30s
       retries: 11
