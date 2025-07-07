@@ -35,7 +35,7 @@
         "ghcr.io/mission-apprentissage/mna_lab_server:${CHANNEL}"
       ],
       "labels": {
-        "org.opencontainers.image.description": "Server"
+        "org.opencontainers.image.description": "Server lab"
       },
       "target": "server"
     }
