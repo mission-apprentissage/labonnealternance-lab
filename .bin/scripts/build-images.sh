@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 set -euo pipefail
 
 export VERSION="${1:?"Veuillez préciser la version"}"
@@ -24,6 +25,7 @@ if [[ $# == "0" ]]; then
 fi;
 
 set +e
+echo "# X"
 docker buildx create --name "mna-lab" --driver docker-container --config "$SCRIPT_DIR/buildkitd.toml" 2> /dev/null
 set -e
 
@@ -36,6 +38,12 @@ fi
 export CHANNEL=$(get_channel $VERSION)
 
 # "$@" is the list of environements
+echo "# A"
+echo "$VERSION"
+echo "$CHANNEL"
+echo "docker buildx bake --builder \"mna-lab\" --${mode} \"$@\""
 docker buildx bake --builder "mna-lab" --${mode} "$@"
+echo "# B"
 docker builder prune --builder "mna-lab" --keep-storage 20GB --force
+echo "# C"
 docker buildx stop --builder "mna-lab"
