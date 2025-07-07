@@ -14,7 +14,7 @@ x-deploy-default: &deploy-default
 
 x-default: &default
   networks:
-    - product_network
+    - mna_network
 
 services:
   server:

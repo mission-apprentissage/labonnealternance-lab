@@ -29,37 +29,12 @@
     - item.path | regex_search('^tools/?') == none
     - item.path | regex_search('^system/?') == none
 
-- name: Copie du fichier de seed
-  ansible.builtin.copy:
-    src: "{{inventory_dir}}/files/configs/mongodb/seed.gpg"
-    dest: "/opt/app/configs/mongodb/seed.gpg"
-    mode: "700"
-  when: env_type == 'preview'
-
-- name: Copie du fichier mongodb keyfile
-  ansible.builtin.template:
-    src: "{{inventory_dir}}/files/configs/mongodb/mongo_keyfile.txt"
-    dest: "/opt/app/configs/mongodb/mongo_keyfile.txt"
-    mode: "400"
-    owner: 999
-    group: 999
-  when: env_type == 'preview'
-
 - name: copy server env file
   ansible.builtin.template:
     src: "{{ item }}"
     dest: "/opt/app/.env_server"
   with_fileglob:
     - "{{inventory_dir}}/.env_server"
-  when: env_type != 'preview'
-
-- name: copy ui env file
-  ansible.builtin.template:
-    src: "{{ item }}"
-    dest: "/opt/app/.env_ui"
-  with_fileglob:
-    - "{{inventory_dir}}/.env_ui"
-  when: env_type != 'preview'
 
 - name: copy du fichier docker compose
   ansible.builtin.template:
@@ -67,18 +42,3 @@
     dest: "/opt/app/docker-compose.production.yml"
   with_fileglob:
     - "{{inventory_dir}}/docker-compose.production.yml"
-  when: env_type != 'preview'
-
-- name: copy du fichier recette docker compose
-  ansible.builtin.template:
-    src: "{{ item }}"
-    dest: "/opt/app/docker-compose.recette.yml"
-  with_fileglob:
-    - "{{inventory_dir}}/docker-compose.recette.yml"
-  when: env_type == 'recette'
-
-- name: creation du fichier docker compose preview system
-  ansible.builtin.template:
-    src: "{{inventory_dir}}/docker-compose.preview-system.yml"
-    dest: "/opt/app/docker-compose.preview-system.yml"
-  when: env_type == 'preview'

@@ -39,11 +39,6 @@ jobs:
       - name: lint
         run: yarn lint
 
-      - name: start mongodb service
-        run: |
-          docker compose up --build -d --wait mongodb
-          yarn setup:mongodb
-
       - name: test
         run: yarn test:ci
 
