@@ -25,7 +25,6 @@ if [[ $# == "0" ]]; then
 fi;
 
 set +e
-echo "# X"
 docker buildx create --name "mna-lab" --driver docker-container --config "$SCRIPT_DIR/buildkitd.toml" 2> /dev/null
 set -e
 
