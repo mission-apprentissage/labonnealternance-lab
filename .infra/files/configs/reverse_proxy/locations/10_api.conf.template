@@ -1,5 +1,5 @@
-location /api {
-    set $upstream http://server:5000;
+location / {
+    set $upstream http://server:8000;
     include includes/error_page_json.conf;
     include includes/proxy.conf;
 }
