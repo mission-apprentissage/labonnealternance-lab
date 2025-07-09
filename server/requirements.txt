@@ -1,9 +1,9 @@
 flask
 python-dotenv
 huggingface_hub[hf_xet]
-transformers
-torch
-joblib
-pandas
-scikit-learn
-requests
+transformers==4.53.0
+torch==2.6.0
+pandas==2.2.2
+scikit-learn==1.6.1
+requests==2.32.3
+joblib==1.5.1
