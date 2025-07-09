@@ -1,2 +1,7 @@
 flask
 python-dotenv
+huggingface_hub[hf_xet]
+transformers
+torch
+joblib
+pandas
