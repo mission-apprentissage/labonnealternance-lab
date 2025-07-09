@@ -7,7 +7,7 @@ from classifier import Classifier
 load_dotenv()
 
 # Accéder aux variables d'environnement
-# env = os.getenv('LAB_ENV')
+env = os.getenv('LAB_ENV')
 port = os.getenv('LAB_SERVER_PORT')
 
 app = Flask(__name__)
