@@ -5,3 +5,5 @@ transformers
 torch
 joblib
 pandas
+scikit-learn
+requests
