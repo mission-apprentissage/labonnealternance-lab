@@ -4,7 +4,23 @@ import joblib
 import pandas as pd
 
 class Classifier:
+    """
+    A classifier class that uses a pre-trained language model for text encoding
+    and a pre-trained classifier model for prediction.
+
+    Attributes:
+        tokenizer: A tokenizer for the language model.
+        device (torch.device): The device (CPU or GPU) where the model is loaded.
+        model: The pre-trained language model.
+        rf_pipeline: The pre-trained classifier model loaded from a joblib file.
+    """
     def __init__(self, joblib_path):
+        """
+        Initializes the Classifier with a pre-trained language model and a classifier model.
+
+        Args:
+            joblib_path (str): The file path to the pre-trained classifier model in joblib format.
+        """
         # Load language model
         model_name = "almanach/camembertav2-base"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -18,6 +34,15 @@ class Classifier:
 
     # Embedder function
     def encoding(self, text):
+        """
+        Encodes the input text into a normalized embedding using the language model.
+
+        Args:
+            text (str): The input text to be encoded.
+
+        Returns:
+            list: A list containing the normalized embedding of the input text.
+        """
         inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=False).to(self.device)
 
         # Step 3: Generate embeddings
@@ -38,6 +63,15 @@ class Classifier:
 
     # Classifier function
     def score(self, text):
+        """
+        Predicts the label and scores for the input text using the classifier model.
+
+        Args:
+            text (str): The input text to be classified.
+
+        Returns:
+            dict: A dictionary containing the input text, predicted label, and scores for each class.
+        """
         x = pd.DataFrame(self.encoding([text])).add_prefix('emb_')
         y_label = self.rf_pipeline.predict(x)[0]
         y_prob = self.rf_pipeline.predict_proba(x)[0].tolist()
