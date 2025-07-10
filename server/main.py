@@ -11,7 +11,7 @@ load_dotenv()
 port = os.getenv('LAB_SERVER_PORT')
 
 app = Flask(__name__)
-model = Classifier("2025-05-27 offres_ft_rf.joblib")
+model = Classifier("2025-05-27 offres_ft_rf.pkl")
 
 @app.route("/")
 def ready():

@@ -1,6 +1,6 @@
 from transformers import AutoTokenizer, AutoModel
 import torch
-import joblib
+import pickle
 import pandas as pd
 
 class Classifier:
@@ -14,12 +14,12 @@ class Classifier:
         model: The pre-trained language model.
         rf_pipeline: The pre-trained classifier model loaded from a joblib file.
     """
-    def __init__(self, joblib_path):
+    def __init__(self, model_path):
         """
         Initializes the Classifier with a pre-trained language model and a classifier model.
 
         Args:
-            joblib_path (str): The file path to the pre-trained classifier model in joblib format.
+            model_path (str): The file path to the pre-trained classifier model in pickle format.
         """
         # Load language model
         model_name = "almanach/camembertav2-base"
@@ -29,8 +29,9 @@ class Classifier:
         print(f"- Loaded '{model_name}' model on device: {self.device}")
 
         # Load classifier model
-        self.rf_pipeline = joblib.load(joblib_path)
-        print(f"- Loaded '{joblib_path.split('/')[-1]}' model on device: {self.device}")
+        with open(model_path, 'rb') as file:
+            self.rf_pipeline = pickle.load(file)
+        print(f"- Loaded '{model_path.split('/')[-1]}' model on device: {self.device}")
 
     # Embedder function
     def encoding(self, text):
