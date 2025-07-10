@@ -1,19 +1,21 @@
-# Utilise l'image officielle Python 3.13 slim
-FROM python:3.13-slim AS server
+FROM python:3.12-slim AS server
 
-# Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les dépendances en premier pour profiter du cache Docker
+RUN chmod 1777 /tmp
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    --mount=type=cache,target=/var/lib/apt/lists \
+    apt-get update \
+      && apt-get install -y build-essential \
+      && rm -rf /var/lib/apt/lists/*
+
 COPY server/requirements.txt .
 
-# Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copier le reste de l'application
 COPY server/ .
 
 EXPOSE 8000
 
-# Commande de lancement (à adapter selon ton point d'entrée)
 CMD ["python", "main.py"]
