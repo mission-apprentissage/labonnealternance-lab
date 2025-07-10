@@ -4,9 +4,7 @@ WORKDIR /app
 
 RUN chmod 1777 /tmp
 
-RUN --mount=type=cache,target=/var/cache/apt \
-    --mount=type=cache,target=/var/lib/apt/lists \
-    apt-get update \
+RUN apt-get update \
       && apt-get install -y build-essential \
       && rm -rf /var/lib/apt/lists/*
 
