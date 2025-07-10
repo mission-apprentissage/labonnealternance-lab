@@ -8,10 +8,11 @@ load_dotenv()
 
 # Accéder aux variables d'environnement
 # env = os.getenv('LAB_ENV')
+hf_token = os.getenv('LAB_HF_TOKEN')
 port = os.getenv('LAB_SERVER_PORT')
 
 app = Flask(__name__)
-model = Classifier("2025-05-27 offres_ft_rf.pkl")
+model = Classifier(repo_id="LaBonneAlternance/offres-classifier", hf_token=hf_token)
 
 @app.route("/")
 def ready():

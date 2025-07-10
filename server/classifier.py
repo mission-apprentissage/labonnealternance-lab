@@ -2,6 +2,10 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 import pickle
 import pandas as pd
+from skops import hub_utils
+from tempfile import mkdtemp
+import joblib
+import glob
 
 class Classifier:
     """
@@ -14,13 +18,15 @@ class Classifier:
         model: The pre-trained language model.
         rf_pipeline: The pre-trained classifier model loaded from a joblib file.
     """
-    def __init__(self, model_path):
+    def __init__(self, repo_id, hf_token=''):
         """
         Initializes the Classifier with a pre-trained language model and a classifier model.
 
         Args:
-            model_path (str): The file path to the pre-trained classifier model in pickle format.
+            repo_id (str): The huggingface repo_id to the classifier model.
+            hf_token (str): The huggingface token
         """
+
         # Load language model
         model_name = "almanach/camembertav2-base"
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -29,9 +35,11 @@ class Classifier:
         print(f"- Loaded '{model_name}' model on device: {self.device}")
 
         # Load classifier model
-        with open(model_path, 'rb') as file:
-            self.rf_pipeline = pickle.load(file)
-        print(f"- Loaded '{model_path.split('/')[-1]}' model on device: {self.device}")
+        repo_copy = mkdtemp(prefix="skops")
+        hub_utils.download(repo_id=repo_id, dst=repo_copy, token=hf_token)
+        pkl_file = glob.glob(repo_copy + "/*.pkl")[0]
+        self.rf_pipeline = joblib.load(pkl_file)
+        print(f"- Loaded '{repo_id}' model on device: {self.device}")
 
     # Embedder function
     def encoding(self, text):
