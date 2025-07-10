@@ -6,7 +6,11 @@
 
 ## Documentation
 
-## 1. Test application
+## 1. Add environment variable
+The application depends on this secret environment variables:
+- $LAB_HF_TOKEN
+
+## 2. Test application
 ### Install requirements
 ```shell
 $ cd server && python -m venv .venv && source .venv/bin/activate
@@ -29,7 +33,7 @@ $ curl http://127.0.0.1:5000/score -X POST -H 'Content-Type: application/json' -
 $ deactivate
 ```
 
-## 2. Create docker image
+## 3. Create docker image
 ### Build image
 ```shell
 $ docker buildx build --platform linux/amd64 -t lba-classifier .
@@ -37,7 +41,7 @@ $ docker buildx build --platform linux/amd64 -t lba-classifier .
 
 ### Run image
 ```shell
-docker run --rm -it -p 8000:8000 --name classifier lba-classifier
+docker run --rm -it -p 8000:8000 -e HF_TOKEN="$LAB_HF_TOKEN" --name classifier lba-classifier
 ```
 
 ### Test docker endpoint
