@@ -5,7 +5,7 @@ WORKDIR /app
 RUN chmod 1777 /tmp
 
 RUN apt-get update \
-      && apt-get install -y build-essential \
+      && apt-get install -y build-essential curl \
       && rm -rf /var/lib/apt/lists/*
 
 COPY server/requirements.txt .
