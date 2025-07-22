@@ -12,8 +12,6 @@ function Help() {
    echo "  vault:init                                 Fetch initial vault-password from template-apprentissage"
    echo "  vault:edit                                 Edit vault file"
    echo "  vault:password                             Show vault password"
-   echo "  seed:update                                Update seed using a database"
-   echo "  seed:apply                                 Apply seed to a database"
    echo "  deploy:log:encrypt                         Encrypt Github ansible logs"
    echo "  deploy:log:dencrypt                        Decrypt Github ansible logs"
    echo "  log:encrypt <log_file>                     Encrypt log file"
@@ -59,14 +57,6 @@ function vault:edit() {
 
 function vault:password() {
   "${SCRIPT_DIR}/get-vault-password-client.sh" "$@"
-}
-
-function seed:update() {
-  "${SCRIPT_DIR}/seed-update.sh" "$@"
-}
-
-function seed:apply() {
-  "${SCRIPT_DIR}/seed-apply.sh" "$@"
 }
 
 function deploy:log:encrypt() {

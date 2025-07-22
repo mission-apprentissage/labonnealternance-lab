@@ -13,8 +13,6 @@ _product_completion() {
    "vault\:init:'Fetch initial vault-password from template-apprentissage'"
    "vault\:edit:'Edit vault file'"
    "vault\:password:'Get vault password'"
-   "seed\:update:'Update seed using a database'"
-   "seed\:apply:'Apply seed to a database'"
    "deploy\:log\:encrypt:'Encrypt Github ansible logs'"
    "deploy\:log\:dencrypt:'Decrypt Github ansible logs'"
    "log\:encrypt:'Encrypt log file'"
