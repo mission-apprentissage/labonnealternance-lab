@@ -48,7 +48,7 @@ def version():
     Returns:
         Response: A JSON object containing the version of the classifier model.
     """
-    return jsonify({'model': model.classifier_name}), 400
+    return jsonify({'model': model.classifier_name}), 200
 
 if __name__ == "__main__":
     # Start the Flask application on the specified host and port
