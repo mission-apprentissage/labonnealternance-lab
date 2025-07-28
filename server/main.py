@@ -40,6 +40,16 @@ def score():
         # If the request did not contain JSON data, return an error
         return jsonify({'error': 'Request must be JSON'}), 400
 
+@app.route("/version")
+def version():
+    """
+    Route to get classifier model version.
+
+    Returns:
+        Response: A JSON object containing the version of the classifier model.
+    """
+    return jsonify({'model': model.classifier_name}), 400
+
 if __name__ == "__main__":
     # Start the Flask application on the specified host and port
     app.run(host="0.0.0.0", port=port)
