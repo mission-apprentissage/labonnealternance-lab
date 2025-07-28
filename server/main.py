@@ -8,7 +8,7 @@ load_dotenv()
 port = os.getenv('LAB_SERVER_PORT')
 
 app = Flask(__name__)
-model = Classifier("models/2025-07-24-offres-ft-rf.pkl")
+model = Classifier("models/2025-07-28 offres_ft_svc.pkl")
 
 @app.route("/")
 def ready():

@@ -30,7 +30,7 @@ class Classifier:
 
         # Load classifier model
         with open(model_path, 'rb') as file:
-            self.rf_pipeline = pickle.load(file)
+            self.classifier = pickle.load(file)
         print(f"- Loaded '{model_path.split('/')[-1]}' model on device: {self.device}")
 
     # Embedder function
@@ -74,8 +74,8 @@ class Classifier:
             dict: A dictionary containing the input text, predicted label, and scores for each class.
         """
         x = pd.DataFrame(self.encoding([text])).add_prefix('emb_')
-        y_label = self.rf_pipeline.predict(x)[0]
-        y_prob = self.rf_pipeline.predict_proba(x)[0].tolist()
+        y_label = self.classifier.predict(x)[0]
+        y_prob = self.classifier.predict_proba(x)[0].tolist()
         y_prob = [round(i, 4) for i in y_prob]
         return {'text': text, 'label': y_label, 
                 'scores': {'cfa': y_prob[0], 'entreprise': y_prob[1], 'entreprise_cfa': y_prob[2]}}
