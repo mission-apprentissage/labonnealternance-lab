@@ -31,7 +31,9 @@ class Classifier:
         # Load classifier model
         with open(model_path, 'rb') as file:
             self.classifier = pickle.load(file)
-        print(f"- Loaded '{model_path.split('/')[-1]}' model on device: {self.device}")
+
+        self.classifier_name = model_path.split('/')[-1]
+        print(f"- Loaded '{self.classifier_name}' model on device: {self.device}")
 
     # Embedder function
     def encoding(self, text):
@@ -77,5 +79,6 @@ class Classifier:
         y_label = self.classifier.predict(x)[0]
         y_prob = self.classifier.predict_proba(x)[0].tolist()
         y_prob = [round(i, 4) for i in y_prob]
-        return {'text': text, 'label': y_label, 
+        return {'model': self.classifier_name,
+                'text': text, 'label': y_label, 
                 'scores': {'cfa': y_prob[0], 'entreprise': y_prob[1], 'entreprise_cfa': y_prob[2]}}
