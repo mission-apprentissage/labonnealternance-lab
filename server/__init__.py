@@ -8,7 +8,7 @@ def create_app():
     app = Flask(__name__)
 
     # Enregistre les routes
-    from .routes import register_routes
+    from routes import register_routes
     register_routes(app, model)
 
     # Gestion globale des exceptions
