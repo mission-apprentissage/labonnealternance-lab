@@ -30,10 +30,6 @@ def version():
     """
     return jsonify({'model': model.classifier_name}), 200
 
-if __name__ == "__main__":
-    # Start the Flask application on the specified host and port
-    app.run(host="0.0.0.0", port=port)
-
 @app.route('/score', methods = ['POST'])
 def score():
     """
@@ -88,6 +84,8 @@ def scores():
 
     return jsonify(results), 200
 
-
+if __name__ == "__main__":
+    # Start the Flask application on the specified host and port
+    app.run(host="0.0.0.0", port=port)
 
 
