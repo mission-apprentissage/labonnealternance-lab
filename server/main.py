@@ -20,6 +20,20 @@ def ready():
     """
     return "LBA classifier API ready."
 
+@app.route("/version")
+def version():
+    """
+    Route to get classifier model version.
+
+    Returns:
+        Response: A JSON object containing the version of the classifier model.
+    """
+    return jsonify({'model': model.classifier_name}), 200
+
+if __name__ == "__main__":
+    # Start the Flask application on the specified host and port
+    app.run(host="0.0.0.0", port=port)
+
 @app.route('/score', methods = ['POST'])
 def score():
     """
@@ -40,16 +54,40 @@ def score():
         # If the request did not contain JSON data, return an error
         return jsonify({'error': 'Request must be JSON'}), 400
 
-@app.route("/version")
-def version():
+@app.route('/scores', methods=['POST'])
+def scores():
     """
-    Route to get classifier model version.
+    Route to score multiple texts using the Classifier model.
+    Each input must be an object with 'id' and 'text' fields.
 
     Returns:
-        Response: A JSON object containing the version of the classifier model.
+        Response: A list of objects with 'id' and the corresponding score.
     """
-    return jsonify({'model': model.classifier_name}), 200
+    if not request.is_json:
+        return jsonify({'error': 'Request must be JSON'}), 400
 
-if __name__ == "__main__":
-    # Start the Flask application on the specified host and port
-    app.run(host="0.0.0.0", port=port)
+    data = request.get_json()
+    print("Received batch data:", data)
+
+    if 'items' not in data:
+        return jsonify({'error': 'Missing "items" field (list of {id, text}).'}), 400
+
+    items = data['items']
+    if not isinstance(items, list):
+        return jsonify({'error': '"items" must be a list.'}), 400
+
+    results = []
+    for item in items:
+        if not isinstance(item, dict) or 'id' not in item or 'text' not in item:
+            return jsonify({'error': 'Each item must be an object with "id" and "text".'}), 400
+        if not isinstance(item['id'], str) or not isinstance(item['text'], str):
+            return jsonify({'error': '"id" must be str, and "text" must be a string.'}), 400
+
+        score = model.score(item['text'])
+        results.append({'id': item['id'], **score})
+
+    return jsonify(results), 200
+
+
+
+
