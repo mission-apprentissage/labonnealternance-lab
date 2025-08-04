@@ -56,17 +56,20 @@ def register_routes(app, model):
                 logger.warning("Invalid item types at index %d: id=%s, text=%s", idx, type(item['id']), type(item['text']))
                 return jsonify({'error': '"id" must be str and "text" must be str.'}), 400
 
-        # Extract texts and IDs for batch processing
-        texts = [item['text'] for item in items]
-        ids = [item['id'] for item in items]
+        # Process individually for better server performance
+        # NOTE: Batch processing was slower on server CPU (18s for 5 items vs 5s individually)
+        # Uncomment below for batch processing on high-performance hardware (M4 Pro, GPU servers):
+        # texts = [item['text'] for item in items]
+        # ids = [item['id'] for item in items]
+        # batch_scores = model.score_batch(texts)
+        # results = []
+        # for item_id, score_result in zip(ids, batch_scores):
+        #     results.append({'id': item_id, **score_result})
         
-        # Use batch processing for much faster inference
-        batch_scores = model.score_batch(texts)
-        
-        # Add IDs back to results
         results = []
-        for item_id, score_result in zip(ids, batch_scores):
-            results.append({'id': item_id, **score_result})
+        for item in items:
+            score = model.score(item['text'])
+            results.append({'id': item['id'], **score})
 
         logger.info("Batch scored: %d items", len(results))
         return jsonify(results), 200

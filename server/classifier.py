@@ -109,10 +109,10 @@ class Classifier:
         Returns:
             list: List of dictionaries, each containing text, predicted label, and scores.
         """
-        # For very large batches, process in chunks to avoid memory issues
-        if len(texts) > 50:
+        # For server environments, use smaller chunks for better performance
+        if len(texts) > 10:
             results = []
-            chunk_size = 20
+            chunk_size = 5  # Smaller chunks for server CPU
             for i in range(0, len(texts), chunk_size):
                 chunk = texts[i:i+chunk_size]
                 chunk_results = self.score_batch(chunk)
