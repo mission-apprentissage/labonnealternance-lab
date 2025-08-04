@@ -46,7 +46,7 @@ class Classifier:
         Returns:
             list: A list containing the normalized embedding of the input text.
         """
-        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=False).to(self.device)
+        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
 
         # Step 3: Generate embeddings
         with torch.no_grad():
