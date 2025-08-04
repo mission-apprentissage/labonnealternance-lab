@@ -38,10 +38,10 @@ test: ## Test the API endpoints (requires server to be running)
 	curl -X POST http://localhost:8000/score \
 		-H 'Content-Type: application/json' \
 		-d '{"text": "Développeur Python recherché pour startup"}'
-	@echo "\n\nTesting batch classification..."
+	@echo "\n\nTesting batch classification with real test data (10 job offers)..."
 	curl -X POST http://localhost:8000/scores \
 		-H 'Content-Type: application/json' \
-		-d '{"items": [{"id":"1", "text": "Développeur Python"}, {"id":"2", "text": "Stage marketing"}]}'
+		-d @test-data.json
 
 health: ## Check API health
 	curl -f http://localhost:8000/ || echo "Service not available"
