@@ -65,4 +65,4 @@ release-interactive: ## Build & Push Docker image releases (interactive)
 	./.bin/mna-lab release:interactive
 
 deploy: ## Deploy application to environment (usage: make deploy ENV=<env> USER=<username>)
-	./.bin/mna-lab deploy $(ENV) --user $(USER)
+	./.bin/mna-lab deploy production
