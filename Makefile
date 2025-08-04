@@ -59,3 +59,10 @@ build-prod: ## Build production image
 
 run-prod: ## Run production container
 	docker run --rm -it -p 8000:8000 --name classifier lba-classifier
+
+# Release commands
+release-interactive: ## Build & Push Docker image releases (interactive)
+	./.bin/mna-lab release:interactive
+
+deploy: ## Deploy application to environment (usage: make deploy ENV=<env> USER=<username>)
+	./.bin/mna-lab deploy $(ENV) --user $(USER)
