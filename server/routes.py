@@ -47,7 +47,7 @@ def register_routes(app, model):
             logger.warning("Invalid /scores payload: 'items' is not a list")
             return jsonify({'error': '"items" must be a list.'}), 400
 
-        results = []
+        # Validate all items first
         for idx, item in enumerate(items):
             if not isinstance(item, dict) or 'id' not in item or 'text' not in item:
                 logger.warning("Invalid item at index %d: missing 'id' or 'text'", idx)
@@ -56,8 +56,17 @@ def register_routes(app, model):
                 logger.warning("Invalid item types at index %d: id=%s, text=%s", idx, type(item['id']), type(item['text']))
                 return jsonify({'error': '"id" must be str and "text" must be str.'}), 400
 
-            score = model.score(item['text'])
-            results.append({'id': item['id'], **score})
+        # Extract texts and IDs for batch processing
+        texts = [item['text'] for item in items]
+        ids = [item['id'] for item in items]
+        
+        # Use batch processing for much faster inference
+        batch_scores = model.score_batch(texts)
+        
+        # Add IDs back to results
+        results = []
+        for item_id, score_result in zip(ids, batch_scores):
+            results.append({'id': item_id, **score_result})
 
         logger.info("Batch scored: %d items", len(results))
         return jsonify(results), 200
