@@ -89,7 +89,8 @@ class Classifier:
         Returns:
             dict: A dictionary containing the input text, predicted label, and scores for each class.
         """
-        x = pd.DataFrame(self.encoding([text])).add_prefix('emb_')
+        embeddings = self.encoding([text])
+        x = pd.DataFrame([embeddings[0]]).add_prefix('emb_')
         y_label = self.classifier.predict(x)[0]
         y_prob = self.classifier.predict_proba(x)[0].tolist()
         y_prob = [round(i, 4) for i in y_prob]
@@ -108,6 +109,16 @@ class Classifier:
         Returns:
             list: List of dictionaries, each containing text, predicted label, and scores.
         """
+        # For very large batches, process in chunks to avoid memory issues
+        if len(texts) > 50:
+            results = []
+            chunk_size = 20
+            for i in range(0, len(texts), chunk_size):
+                chunk = texts[i:i+chunk_size]
+                chunk_results = self.score_batch(chunk)
+                results.extend(chunk_results)
+            return results
+        
         # Generate embeddings for all texts in one batch
         embeddings = self.encoding(texts)
         
