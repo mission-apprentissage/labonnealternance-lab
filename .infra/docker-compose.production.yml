@@ -24,8 +24,14 @@ services:
       <<: *deploy-default
       resources:
         limits:
-          memory: 2g
-      replicas: 2
+          memory: 10g
+      replicas: 1
+      placement:
+        constraints:
+          - node.labels.nvidia == true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     stop_grace_period: 60s
     volumes:
       - /opt/app/data/server:/data

@@ -20,7 +20,7 @@
         "PUBLIC_VERSION": "${VERSION}"
       },
       "dockerfile": "Dockerfile",
-      "platforms": ["linux/amd64", "linux/arm64"],
+      "platforms": ["linux/amd64"],
       "labels": {
         "org.opencontainers.image.source": "https://github.com/mission-apprentissage/labonnealternance-lab",
         "org.opencontainers.image.licenses": "MIT"
