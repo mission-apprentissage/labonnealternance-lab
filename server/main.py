@@ -13,7 +13,7 @@ def setup_logging():
         handlers=[logging.StreamHandler()]
     )
 
-port = int(os.getenv('LAB_SERVER_PORT', 5000))
+port = int(os.getenv('LAB_SERVER_PORT', 8000))
 setup_logging()
 app = create_app()
 

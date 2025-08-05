@@ -26,6 +26,14 @@ class Classifier:
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = AutoModel.from_pretrained(model_name).to(self.device)
+        
+        # Set model to evaluation mode for faster inference
+        self.model.eval()
+        
+        # Enable optimizations if available
+        if hasattr(torch, 'set_float32_matmul_precision'):
+            torch.set_float32_matmul_precision('high')
+        
         print(f"- Loaded '{model_name}' model on device: {self.device}")
 
         # Load classifier model
@@ -34,6 +42,9 @@ class Classifier:
 
         self.classifier_name = model_path.split('/')[-1]
         print(f"- Loaded '{self.classifier_name}' model on device: {self.device}")
+        print(f"- CUDA available: {torch.cuda.is_available()}")
+        if torch.cuda.is_available():
+            print(f"- GPU name: {torch.cuda.get_device_name(0)}")
 
     # Embedder function
     def encoding(self, text):
@@ -41,21 +52,27 @@ class Classifier:
         Encodes the input text into a normalized embedding using the language model.
 
         Args:
-            text (str): The input text to be encoded.
+            text (str or list): The input text(s) to be encoded.
 
         Returns:
-            list: A list containing the normalized embedding of the input text.
+            list: A list containing the normalized embedding(s) of the input text(s).
         """
-        inputs = self.tokenizer(text, return_tensors="pt", padding=True, truncation=True).to(self.device)
+        # Handle both single text and batch of texts
+        if isinstance(text, str):
+            texts = [text]
+        else:
+            texts = text
+            
+        inputs = self.tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512).to(self.device)
 
-        # Step 3: Generate embeddings
+        # Generate embeddings
         with torch.no_grad():
             outputs = self.model(**inputs)
 
         # Use the embeddings from the last hidden state
         embeddings = outputs.last_hidden_state
 
-        # Step 4: Normalize the embeddings
+        # Normalize the embeddings
         # Average the embeddings across the sequence length dimension
         sentence_embedding = torch.mean(embeddings, dim=1)
 
@@ -75,10 +92,48 @@ class Classifier:
         Returns:
             dict: A dictionary containing the input text, predicted label, and scores for each class.
         """
-        x = pd.DataFrame(self.encoding([text])).add_prefix('emb_')
+        embeddings = self.encoding([text])
+        x = pd.DataFrame([embeddings[0]]).add_prefix('emb_')
         y_label = self.classifier.predict(x)[0]
         y_prob = self.classifier.predict_proba(x)[0].tolist()
         y_prob = [round(i, 4) for i in y_prob]
         return {'model': self.classifier_name,
                 'text': text, 'label': y_label, 
                 'scores': {'cfa': y_prob[0], 'entreprise': y_prob[1], 'entreprise_cfa': y_prob[2]}}
+
+    # Batch classifier function
+    def score_batch(self, texts):
+        """
+        Predicts the labels and scores for multiple texts using batch processing.
+
+        Args:
+            texts (list): List of input texts to be classified.
+
+        Returns:
+            list: List of dictionaries, each containing text, predicted label, and scores.
+        """
+        # Remove chunking for GPU - process all at once for better GPU utilization
+        # GPU benefits from larger batches, not smaller chunks
+        
+        # Generate embeddings for all texts in one batch
+        embeddings = self.encoding(texts)
+        
+        # Create DataFrame with embeddings
+        x = pd.DataFrame(embeddings).add_prefix('emb_')
+        
+        # Batch predict labels and probabilities
+        y_labels = self.classifier.predict(x)
+        y_probs = self.classifier.predict_proba(x)
+        
+        # Format results
+        results = []
+        for text, label, probs in zip(texts, y_labels, y_probs):
+            prob_rounded = [round(p, 4) for p in probs.tolist()]
+            results.append({
+                'model': self.classifier_name,
+                'text': text,
+                'label': label,
+                'scores': {'cfa': prob_rounded[0], 'entreprise': prob_rounded[1], 'entreprise_cfa': prob_rounded[2]}
+            })
+        
+        return results
