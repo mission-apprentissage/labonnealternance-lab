@@ -9,7 +9,7 @@ def get_model():
     """Lazy load model in worker process to avoid CUDA forking issues"""
     global model
     if model is None:
-        model = Classifier("models/2025-07-28 offres_ft_svc.pkl")
+        model = Classifier("models/2025-08-06 offres_ft_svc.pkl")
     return model
 
 def create_app():
