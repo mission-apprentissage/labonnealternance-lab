@@ -12,18 +12,11 @@
         chdir: /opt/app
         cmd: "/opt/app/tools/docker-compose.sh pull --policy missing"
 
-    - name: Récupération du status de la stack
-      shell:
-        chdir: /opt/app
-        cmd: docker stack ls --format json
-      register: stack_status
-
     - name: Lancement de l'application {{env_type}}
       shell:
         chdir: /opt/app
         cmd: "/opt/app/tools/update-stack.sh"
       register: docker_deploy_output
-      when: stack_status.stdout != ""
       async: 1800
       poll: 10
 
