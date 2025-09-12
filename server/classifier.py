@@ -2,49 +2,68 @@ from transformers import AutoTokenizer, AutoModel
 import torch
 import pickle
 import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from datasets import Dataset, load_dataset
+import pickle as pickle
+from pathlib import Path
+from tempfile import mkdtemp, mkstemp
+from huggingface_hub import hf_hub_download, ModelCard, ModelCardData, EvalResult
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, accuracy_score, f1_score
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from huggingface_hub import HfApi
+from tqdm import tqdm
+tqdm.pandas()
 
 class Classifier:
     """
     A classifier class that uses a pre-trained language model for text encoding
-    and a pre-trained classifier model for prediction.
+    and a trained classifier model for prediction.
 
     Attributes:
         tokenizer: A tokenizer for the language model.
         device (torch.device): The device (CPU or GPU) where the model is loaded.
-        model: The pre-trained language model.
-        rf_pipeline: The pre-trained classifier model loaded from a joblib file.
+        llm: The pre-trained language model.
+        version (str): The version of the model.
+        model_file (str): The filename of the model.
+        repo_id (str): The repository ID on HuggingFace Hub.
+        token (str): The HuggingFace token.
+        classifier: The trained classifier model.
+        dataset: The dataset used for training.
     """
-    def __init__(self, model_path):
+    def __init__(self, version="2025-08-06", 
+                 lang_model="almanach/camembertav2-base",
+                 token=""):
         """
-        Initializes the Classifier with a pre-trained language model and a classifier model.
+        Initializes the Trainer with a pre-trained language model.
 
         Args:
-            model_path (str): The file path to the pre-trained classifier model in pickle format.
+            version (str): The version of the model.
+            lang_model (str): The huggingface path of the pre-trained language model.
         """
         # Load language model
-        model_name = "almanach/camembertav2-base"
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.model = AutoModel.from_pretrained(model_name).to(self.device)
-        
+        self.tokenizer = AutoTokenizer.from_pretrained(lang_model)
+        self.device = torch.device(f"cuda" if torch.cuda.is_available() else "cpu")
+        self.llm = AutoModel.from_pretrained(lang_model).to(self.device)
+        self.version = version
+        self.model_file = f"svc-clf-offer-{version}.pkl"
+        self.repo_id = f"la-bonne-alternance/{version}"
+        self.token = token
+        self.classifier = None
+        self.dataset = None
+
         # Set model to evaluation mode for faster inference
-        self.model.eval()
-        
+        self.llm.eval()
+
         # Enable optimizations if available
         if hasattr(torch, 'set_float32_matmul_precision'):
             torch.set_float32_matmul_precision('high')
-        
-        print(f"- Loaded '{model_name}' model on device: {self.device}")
-
-        # Load classifier model
-        with open(model_path, 'rb') as file:
-            self.classifier = pickle.load(file)
-
-        self.classifier_name = model_path.split('/')[-1]
-        print(f"- Loaded '{self.classifier_name}' model on device: {self.device}")
-        print(f"- CUDA available: {torch.cuda.is_available()}")
-        if torch.cuda.is_available():
-            print(f"- GPU name: {torch.cuda.get_device_name(0)}")
+        device = f"cuda - {torch.cuda.get_device_name(0)}" if torch.cuda.is_available() else "cpu"
+        print(f"- Loaded '{lang_model}' model on device: {device}")
 
     # Embedder function
     def encoding(self, text):
@@ -62,12 +81,12 @@ class Classifier:
             texts = [text]
         else:
             texts = text
-            
+
         inputs = self.tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512).to(self.device)
 
         # Generate embeddings
         with torch.no_grad():
-            outputs = self.model(**inputs)
+            outputs = self.llm(**inputs)
 
         # Use the embeddings from the last hidden state
         embeddings = outputs.last_hidden_state
@@ -93,11 +112,11 @@ class Classifier:
             dict: A dictionary containing the input text, predicted label, and scores for each class.
         """
         embeddings = self.encoding([text])
-        x = pd.DataFrame([embeddings[0]]).add_prefix('emb_')
+        x = pd.DataFrame([embeddings[0]])
         y_label = self.classifier.predict(x)[0]
         y_prob = self.classifier.predict_proba(x)[0].tolist()
         y_prob = [round(i, 4) for i in y_prob]
-        return {'model': self.classifier_name,
+        return {'model': self.version,
                 'text': text, 'label': y_label, 
                 'scores': {'cfa': y_prob[0], 'entreprise': y_prob[1], 'entreprise_cfa': y_prob[2]}}
 
@@ -130,10 +149,221 @@ class Classifier:
         for text, label, probs in zip(texts, y_labels, y_probs):
             prob_rounded = [round(p, 4) for p in probs.tolist()]
             results.append({
-                'model': self.classifier_name,
+                'model': self.version,
                 'text': text,
                 'label': label,
                 'scores': {'cfa': prob_rounded[0], 'entreprise': prob_rounded[1], 'entreprise_cfa': prob_rounded[2]}
             })
         
         return results
+
+    # Dataset create and encode function
+    def create_dataset(self, ids, texts, labels, batch_size=20):
+        """
+        Create a pandas dataset from the given ids, texts, and labels.
+        Args:
+            ids (list): List of ids.
+            texts (list): List of texts.
+            labels (list): List of labels.
+
+        Returns:
+            dataset: The created dataset with embeddings
+        """
+        # Create dataset
+        dataset = pd.DataFrame({'id': ids, 'text': texts, 'label': labels})
+
+        # Batch encoding texts
+        embeddings = []
+        for i in tqdm(range(0, len(dataset), batch_size), desc=f"- Creating dataset '{self.version}'"):
+            batch = dataset['text'][i:i+batch_size]
+            batch_embeddings = self.encoding(list(batch))
+            embeddings.extend(batch_embeddings)
+        dataset['embeddings'] = embeddings
+
+        # Update dataset
+        self.dataset = dataset
+        print(f"\n- Dataset '{self.version}' created: {dataset.shape}")
+        return dataset
+
+    # Dataset save function
+    def save_dataset(self):
+        """
+        Upload a pandas dataset to the HuggingFace Hub.
+
+        Returns:
+            url: The URL of the saved dataset.
+        """
+
+        # Save dataset to HF
+        hf_dataset = Dataset.from_pandas(self.dataset)
+        hf_dataset.push_to_hub(self.repo_id, private=True, token=self.token)
+        url = f"https://huggingface.co/datasets/{self.repo_id}"
+        print(f"- Dataset exported to: {url}.")
+        return url
+
+    # Dataset loader function
+    def load_dataset(self, split="all"):
+        """
+        Load a dataset from the HuggingFace Hub.
+
+        Args:
+            split (str, optional): The split of the dataset to load. Defaults to "all".
+
+        Returns:
+            dataset: The loaded dataset.
+        """
+        self.dataset = load_dataset(self.repo_id, token=self.token, split=split).to_pandas().reset_index(drop=True)
+        print(f"- Dataset loaded from https://huggingface.co/datasets/{self.repo_id}: {dataset.shape}")
+        return self.dataset
+
+    # Classifier trainer function
+    def train_model(self):
+        """
+        Train a SVC classifier on the given dataset.
+
+        Returns:
+            classifier: Trained SVC model.
+            train_score: Training score of the model.
+            test_score: Testing score of the model.
+        """
+        # Create training dataset
+        label_df = self.dataset['label']
+        feat_df = self.dataset['embeddings'].apply(pd.Series)
+        X_train, X_test, y_train, y_test = train_test_split(feat_df, label_df, test_size=0.2, random_state=42, shuffle=True, stratify=label_df)
+
+        # PCA optimization
+        # print("- PCA features optimization...")
+        pca = PCA()
+        sc = StandardScaler()
+        X_train_std = sc.fit_transform(X_train)
+        X_pca = pca.fit_transform(X_train_std)
+
+        # Find optimal PCA features
+        threshold = 0.9999
+        features = 0
+        v = 0
+        exp_var_pca = pca.explained_variance_ratio_
+        cum_sum_eigenvalues = np.cumsum(exp_var_pca)
+        while v < threshold:
+            v = cum_sum_eigenvalues[features]
+            features+=1
+
+        # Pipeline configuration
+        # print("- Configure training pipeline...")
+        numeric_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler()),
+            ('pca', PCA(n_components=features))
+            ])
+
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numeric_transformer, feat_df.columns),
+            ],
+            verbose_feature_names_out=False)
+
+        # SVM classifier
+        clf = SVC(random_state=42, kernel='rbf', probability=True)
+        classifier = make_pipeline(preprocessor, clf)
+        classifier.fit(X_train, y_train)
+
+        # Evaluate model
+        train_score = classifier.score(X_train, y_train)
+        test_score = classifier.score(X_test, y_test)
+        print(f"- SVM classifier trained on {features} PCA features: Train={round(train_score,4)} / Test={round(test_score,4)}")        
+        
+        # Update classifier
+        self.classifier = classifier
+        print(f"- SVM classifier {self.version} updated.")        
+        return (classifier, train_score, test_score)
+
+    def save_model(self):
+        """
+        Save a classifier model to the HuggingFace Hub.
+
+        Returns:
+            url: The URL of the saved model.
+        """
+        print(f"- Save model locally...")
+        local_repo = mkdtemp(prefix="lba-")
+        with open(Path(local_repo) / self.model_file, mode="bw") as f:
+            pickle.dump(self.classifier, file=f)
+
+        """
+        # Create model card
+        print(f"- Create model card...")
+        card_data = ModelCardData(
+            language='fr',
+            license='mit',
+            library_name='la-bonne-alternance/2025-08-06',
+            tags=['text-classification', 'camembert'],
+            datasets=['la-bonne-alternance/2025-08-06'],
+            metrics=['f1-score'],
+        )
+        card = ModelCard.from_template(
+            card_data,
+            model_description='This model does x + y...'
+        )
+
+        # Add metrics to model card
+        print(f"- Add metrics to model card...")
+        y_pred = model.predict(X_test)
+
+        eval_descr = (
+            "The model is evaluated on test data using accuracy and F1-score with "
+            "weighted average."
+        )
+        accuracy = accuracy_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred, average="weighted")
+
+        cm = confusion_matrix(y_test, y_pred, labels=model.classes_)
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_).plot()
+        disp.figure_.savefig(Path(local_repo) / "confusion_matrix.png")
+
+        # Save model card
+        print(f"- Save model card...")
+        card.save(Path(local_repo) / "README.md")
+        """
+        api = HfApi()
+
+        # Delete previous repo with the same name
+        try:
+            print(f"- Deleting existing repo: {self.repo_id}")
+            api.delete_repo(repo_id=self.repo_id, token=self.token)
+        except:
+            pass
+
+        # Create repo
+        print(f"- Creating repo: {self.repo_id}")
+        api.create_repo(repo_id=self.repo_id, token=self.token, repo_type="model", private=True)
+
+        # Upload model
+        print(f"- Uploading model: {local_repo}")
+        out = api.upload_folder(
+            folder_path=local_repo,
+            repo_id=self.repo_id,
+            token=self.token,
+            repo_type="model",
+            commit_message="pushing model SVC with camembert v2 embeddings",
+        )
+        url = f"https://huggingface.co/{self.repo_id}"
+        print(f"- Model ready on: {url}")
+        return url
+
+    # Classifier loader function
+    def load_model(self):
+        """
+        Load a classifier model from the HuggingFace Hub.
+
+        Returns:
+            model: The loaded classifier model.
+        """
+        # Download model
+        print(f"- Downloading model: {self.repo_id}")
+        model_dump = hf_hub_download(repo_id=self.repo_id, filename=self.model_file, token=self.token)
+        # print(f"- Model downloaded to: {model_dump}")
+
+        # Reload pickle model
+        with open(model_dump, 'rb') as f:
+            self.classifier = pickle.load(f)
+        print(f"- Classifier model ready.")

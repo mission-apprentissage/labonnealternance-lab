@@ -8,11 +8,26 @@ def register_routes(app, get_model):
     def ready():
         logger.info("Healthcheck received on /")
         return "LBA classifier API ready."
+    
+    @app.route("/init", methods=['POST'])
+    def init():
+        if not request.is_json:
+            logger.warning("Non-JSON request received on /init")
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        logger.debug("Received /init data: %s", data)
+
+        version = data.get('version')
+        model = get_model(version=version)
+        version = model.version
+        logger.info("Model version ready: %s", version)
+        return jsonify({'model': version}), 200
 
     @app.route("/version")
     def version():
         model = get_model()
-        version = model.classifier_name
+        version = model.version
         logger.info("Model version requested: %s", version)
         return jsonify({'model': version}), 200
 
@@ -75,3 +90,69 @@ def register_routes(app, get_model):
 
         logger.info("Batch scored: %d items", len(results))
         return jsonify(results), 200
+
+    @app.route('/dataset/create', methods=['POST'])
+    def create_dataset():
+        if not request.is_json:
+            logger.warning("Non-JSON request received on /score")
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        logger.debug("Received /dataset/create data: %s", data)
+
+        items = data.get('items')
+        if not isinstance(items, list):
+            logger.warning("Invalid /scores payload: 'items' is not a list")
+            return jsonify({'error': '"items" must be a list.'}), 400
+
+        ids = [item['id'] for item in items]
+        texts = [item['text'] for item in items]
+        labels = [item['label'] for item in items]
+
+        model = get_model()
+        dataset = model.create_dataset(ids, texts, labels)
+        result = {'dataset': model.version, 'shape': dataset.shape}
+        logger.info(f"Dataset '{result.dataset}' created: {result.shape}")
+        return jsonify(result), 200
+
+    @app.route('/dataset/save')
+    def save_dataset():
+        model = get_model()
+        url = model.save_dataset()
+        result = {'dataset': model.version, 'url': url}
+        logger.info(f"Dataset '{result.dataset}' saved on: {result.url}")
+        return jsonify(result), 200
+
+    @app.route('/dataset/load')
+    def load_dataset():
+        model = get_model()
+        dataset = model.load_dataset()
+        result = {'dataset': model.version, 'shape': dataset.shape}
+        logger.info(f"Dataset '{result.dataset}' loaded: {result.shape}")
+        return jsonify(result), 200
+
+    @app.route('/model/train')
+    def train_model():
+        model = get_model()
+        classifier, train_score, test_score = model.train_model()
+        result = {'model': model.version, 'train_score': train_score, 'test_score': test_score}
+        logger.info(f"Model '{result.model}' trained: train={result.train_score} / test={result.test_score}")
+        return jsonify(result), 200
+    
+    @app.route('/model/save')
+    def save_model():
+        model = get_model()
+        url = model.save_model()
+        result = {'model': model.version, 'url': url}
+        logger.info(f"Model '{result.model}' saved on: {result.url}")
+        return jsonify(result), 200
+    
+    @app.route('/model/load')
+    def load_model():
+        model = get_model()
+        model.load_model()
+        result = {'model': model.version, 'status': 'loaded'}
+        logger.info(f"Model '{result.model}' {result.status}.")
+        return jsonify(result), 200
+
+

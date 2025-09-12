@@ -1,15 +1,24 @@
 import logging
 from flask import Flask, jsonify
 from classifier import Classifier
+import os
 
 # Global model variable - will be initialized in worker
 model = None
+token = os.environ['LBA_HF_TOKEN']
 
-def get_model():
+def get_model(version=None):
     """Lazy load model in worker process to avoid CUDA forking issues"""
     global model
+    if version is None:
+        return model
+
     if model is None:
-        model = Classifier("models/2025-08-06 offres_ft_svc.pkl")
+        # Initialize classifier
+        model = Classifier(version=version, token=token)
+
+        # Reload model
+        model.load_model()
     return model
 
 def create_app():
