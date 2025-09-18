@@ -17,7 +17,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from huggingface_hub import HfApi
 from tqdm import tqdm
+import logging
+import numpy as np
 tqdm.pandas()
+logger = logging.getLogger(__name__)
 
 class Classifier:
     """
@@ -63,7 +66,7 @@ class Classifier:
         if hasattr(torch, 'set_float32_matmul_precision'):
             torch.set_float32_matmul_precision('high')
         device = f"cuda - {torch.cuda.get_device_name(0)}" if torch.cuda.is_available() else "cpu"
-        print(f"- Loaded '{lang_model}' model on device: {device}")
+        logger.info(f"Loaded '{lang_model}' model on device: {device}")
 
     # Embedder function
     def encoding(self, text):
@@ -158,7 +161,7 @@ class Classifier:
         return results
 
     # Dataset create and encode function
-    def create_dataset(self, ids, texts, labels, batch_size=20):
+    def create_dataset(self, version, ids, texts, labels, batch_size=20):
         """
         Create a pandas dataset from the given ids, texts, and labels.
         Args:
@@ -180,9 +183,10 @@ class Classifier:
             embeddings.extend(batch_embeddings)
         dataset['embeddings'] = embeddings
 
-        # Update dataset
+        # Update dataset and model version
         self.dataset = dataset
-        print(f"\n- Dataset '{self.version}' created: {dataset.shape}")
+        self.version = version
+        logger.info(f"Dataset '{self.version}' created: {dataset.shape}")
         return dataset
 
     # Dataset save function
@@ -198,7 +202,7 @@ class Classifier:
         hf_dataset = Dataset.from_pandas(self.dataset)
         hf_dataset.push_to_hub(self.repo_id, private=True, token=self.token)
         url = f"https://huggingface.co/datasets/{self.repo_id}"
-        print(f"- Dataset exported to: {url}.")
+        logger.info(f"Dataset exported to: {url}.")
         return url
 
     # Dataset loader function
@@ -213,7 +217,7 @@ class Classifier:
             dataset: The loaded dataset.
         """
         self.dataset = load_dataset(self.repo_id, token=self.token, split=split).to_pandas().reset_index(drop=True)
-        print(f"- Dataset loaded from https://huggingface.co/datasets/{self.repo_id}: {dataset.shape}")
+        logger.info(f"Dataset loaded from https://huggingface.co/datasets/{self.repo_id}: {self.dataset.shape}")
         return self.dataset
 
     # Classifier trainer function
@@ -270,11 +274,11 @@ class Classifier:
         # Evaluate model
         train_score = classifier.score(X_train, y_train)
         test_score = classifier.score(X_test, y_test)
-        print(f"- SVM classifier trained on {features} PCA features: Train={round(train_score,4)} / Test={round(test_score,4)}")        
+        logger.info(f"SVM classifier trained on {features} PCA features: Train={round(train_score,4)} / Test={round(test_score,4)}")        
         
         # Update classifier
         self.classifier = classifier
-        print(f"- SVM classifier {self.version} updated.")        
+        logger.info(f"SVM classifier {self.version} updated.")        
         return (classifier, train_score, test_score)
 
     def save_model(self):
@@ -284,14 +288,14 @@ class Classifier:
         Returns:
             url: The URL of the saved model.
         """
-        print(f"- Save model locally...")
+        logger.info(f"Save model locally...")
         local_repo = mkdtemp(prefix="lba-")
         with open(Path(local_repo) / self.model_file, mode="bw") as f:
             pickle.dump(self.classifier, file=f)
 
         """
         # Create model card
-        print(f"- Create model card...")
+        logger.info(f"- Create model card...")
         card_data = ModelCardData(
             language='fr',
             license='mit',
@@ -328,26 +332,26 @@ class Classifier:
 
         # Delete previous repo with the same name
         try:
-            print(f"- Deleting existing repo: {self.repo_id}")
+            logger.info(f"Deleting existing repo: {self.repo_id}")
             api.delete_repo(repo_id=self.repo_id, token=self.token)
         except:
             pass
 
         # Create repo
-        print(f"- Creating repo: {self.repo_id}")
+        logger.info(f"Creating repo: {self.repo_id}")
         api.create_repo(repo_id=self.repo_id, token=self.token, repo_type="model", private=True)
 
         # Upload model
-        print(f"- Uploading model: {local_repo}")
+        logger.info(f"Uploading model: {local_repo}")
         out = api.upload_folder(
             folder_path=local_repo,
             repo_id=self.repo_id,
             token=self.token,
             repo_type="model",
-            commit_message="pushing model SVC with camembert v2 embeddings",
+            commit_message=f"pushing model '{self.version}' SVC with camembert v2 embeddings",
         )
         url = f"https://huggingface.co/{self.repo_id}"
-        print(f"- Model ready on: {url}")
+        logger.info(f"Model ready on: {url}")
         return url
 
     # Classifier loader function
@@ -359,11 +363,11 @@ class Classifier:
             model: The loaded classifier model.
         """
         # Download model
-        print(f"- Downloading model: {self.repo_id}")
+        logger.info(f"Downloading model: {self.repo_id}")
         model_dump = hf_hub_download(repo_id=self.repo_id, filename=self.model_file, token=self.token)
         # print(f"- Model downloaded to: {model_dump}")
 
         # Reload pickle model
         with open(model_dump, 'rb') as f:
             self.classifier = pickle.load(f)
-        print(f"- Classifier model ready.")
+        logger.info(f"Classifier model ready.")
