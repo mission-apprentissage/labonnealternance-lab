@@ -75,10 +75,10 @@ def register_routes(app, get_model):
         data = request.get_json()
         version = data.get('version')
         text = data.get('text')
-        logger.debug("Received /score data: %s", data)
+        logger.debug("Received /model/score data: %s", data)
 
         if not isinstance(text, str):
-            logger.warning("Invalid /score payload: 'text' is not a string")
+            logger.warning("Invalid /model/score payload: 'text' is not a string")
             return jsonify({'error': '"text" must be a string.'}), 400
 
         model = get_model(version)
@@ -95,10 +95,10 @@ def register_routes(app, get_model):
         data = request.get_json()
         version = data.get('version')
         items = data.get('items')
-        logger.debug("Received /scores data: %s", data)
+        logger.debug("Received /model/scores data: %s", data)
 
         if not isinstance(items, list):
-            logger.warning("Invalid /scores payload: 'items' is not a list")
+            logger.warning("Invalid /model/scores payload: 'items' is not a list")
             return jsonify({'error': '"items" must be a list.'}), 400
 
         # Validate all items first
@@ -127,3 +127,31 @@ def register_routes(app, get_model):
 
         logger.info("Batch scored: %d items", len(results))
         return jsonify(results), 200
+    
+    @app.route('/model/evaluate', methods=['POST'])
+    def evaluate():
+        if not request.is_json:
+            logger.warning("Non-JSON request received on /evaluate")
+            return jsonify({'error': 'Request must be JSON'}), 400
+        
+        data = request.get_json()
+        versions = data.get('versions')
+        texts = data.get('texts')
+        labels = data.get('labels')
+
+        logger.debug("Received /model/evaluate data: %s", data)
+
+        evaluation = {}
+        for version in versions:
+            evaluation[version] = []
+            model = get_model(version)
+
+            if not model.classifier:
+                error = f"Model '{version}' do not exist."
+                logger.error(error)
+                return jsonify({'error': error}), 400
+
+            evaluation[version] = model.evaluate(texts=texts, labels=labels)                    
+            logger.info(f"Model '{version}' scores: {evaluation[version]}") 
+        return jsonify(evaluation), 200
+

@@ -141,7 +141,7 @@ class Classifier:
         embeddings = self.encoding(texts)
         
         # Create DataFrame with embeddings
-        x = pd.DataFrame(embeddings).add_prefix('emb_')
+        x = pd.DataFrame(embeddings)
         
         # Batch predict labels and probabilities
         y_labels = self.classifier.predict(x)
@@ -159,6 +159,21 @@ class Classifier:
             })
         
         return results
+
+    def evaluate(self, texts, labels):
+        # Generate embeddings for all texts in one batch
+        embeddings = self.encoding(texts)
+        
+        # Create DataFrame with embeddings
+        x = pd.DataFrame(embeddings)
+        
+        # Batch predict labels
+        y_preds = self.classifier.predict(x)
+
+        # Compute scores
+        accuracy = accuracy_score(labels, y_preds)
+        f1 = f1_score(labels, y_preds, average="weighted")
+        return {"preds": y_preds.tolist(), "accuracy": round(accuracy,4), "f1": round(f1,4)}
 
     # Dataset create and encode function
     def create_dataset(self, version, ids, texts, labels, batch_size=20):
@@ -280,7 +295,7 @@ class Classifier:
         self.classifier = classifier
         logger.info(f"SVM classifier {self.version} updated.")        
         return (classifier, train_score, test_score)
-
+    
     def save_model(self):
         """
         Save a classifier model to the HuggingFace Hub.
