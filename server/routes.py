@@ -29,14 +29,14 @@ def register_routes(app, get_model):
         logger.info("Model version loaded: %s", version)
         return jsonify({'model': version}), 200
 
-    @app.route('/model/train', methods=['POST'])
-    def train_model():
+    @app.route('/model/train/local', methods=['POST'])
+    def train_model_local():
         if not request.is_json:
             logger.warning("Non-JSON request received on /model/train")
             return jsonify({'error': 'Request must be JSON'}), 400
 
         data = request.get_json()
-        logger.debug("Received /model/train data: %s", data)
+        logger.debug("Received /model/train/local data: %s", data)
 
         version = data.get('version')
         ids = data.get('ids')
@@ -51,7 +51,7 @@ def register_routes(app, get_model):
         model = get_model(version)
 
         # Create and save dataset
-        dataset = model.create_dataset(version, ids, texts, labels)
+        dataset = model.create_dataset_local(version, ids, texts, labels)
         dataset_url = model.save_dataset()
         logger.info(f"Saved dataset '{version}' to '{dataset_url}'")
 
@@ -65,6 +65,41 @@ def register_routes(app, get_model):
                   'dataset_url': dataset_url, 
                   'model_url': model_url}
         return jsonify(result), 200
+
+    @app.route('/model/train/online', methods=['POST'])
+    def train_model_online():
+        if not request.is_json:
+            logger.warning("Non-JSON request received on /model/train")
+            return jsonify({'error': 'Request must be JSON'}), 400
+
+        data = request.get_json()
+        logger.debug("Received /model/train/online data: %s", data)
+        version = data.get('version')
+        endpoint = data.get('endpoint')
+
+        # Load model
+        model = get_model(version)
+
+        # Create and save dataset
+        dataset = model.create_dataset_online(version, endpoint)
+        if dataset:
+            dataset_url = model.save_dataset()
+            logger.info(f"Saved dataset '{version}' to '{dataset_url}'")
+
+            # Train and save model
+            classifier, train_score, test_score = model.train_model()
+            model_url = model.save_model()
+            logger.info(f"Saved model '{version}' to '{model_url}'")
+            result = {'version': version, 
+                    'train_score': round(train_score,4), 
+                    'test_score': round(test_score,4), 
+                    'dataset_url': dataset_url, 
+                    'model_url': model_url}
+            return jsonify(result), 200
+            
+        else:
+            logger.warning("Unvalid dataset")
+            return jsonify({'error': 'No valid data available on this endpoint'}), 400
 
     @app.route('/model/score', methods=['POST'])
     def score():

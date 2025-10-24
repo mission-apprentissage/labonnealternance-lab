@@ -40,11 +40,18 @@ $ curl http://127.0.0.1:8000/model/version
 {"model":"2025-08-06"}
 ```
 
-#### Train model version
+#### Train model version (local)
 ```shell
-$ curl http://127.0.0.1:8000/model/train -X POST -H 'Content-Type: application/json' -d '{"version": "2025-09-18", "ids":["1","2","3","4","5","6","7","8","9","10","11","12"], "texts": ["texte 1","texte 2","texte 3","texte 4","texte 5","texte 6","texte 7","texte 8","texte 9","texte 10","texte 11","texte 12"], "labels": ["cfa","cfa_entreprise","entreprise","cfa_entreprise","entreprise","cfa","cfa_entreprise","entreprise","cfa","entreprise","cfa_entreprise","entreprise"]}'
+$ curl http://127.0.0.1:8000/model/train/local -X POST -H 'Content-Type: application/json' -d '{"version": "2025-09-18", "ids":["1","2","3","4","5","6","7","8","9","10","11","12"], "texts": ["texte 1","texte 2","texte 3","texte 4","texte 5","texte 6","texte 7","texte 8","texte 9","texte 10","texte 11","texte 12"], "labels": ["cfa","cfa_entreprise","entreprise","cfa_entreprise","entreprise","cfa","cfa_entreprise","entreprise","cfa","entreprise","cfa_entreprise","entreprise"]}'
 
 {"dataset_url":"https://huggingface.co/datasets/la-bonne-alternance/2025-09-18","model_url":"https://huggingface.co/la-bonne-alternance/2025-09-18","test_score":0.3333,"train_score":0.8888,"version":"2025-09-18"}
+```
+
+#### Train model version (online)
+```shell
+$ curl http://127.0.0.1:8000/model/train/online -X POST -H 'Content-Type: application/json' -d '{"version": "2025-10-24", "endpoint":"https://labonnealternance.apprentissage.beta.gouv.fr/api/classification"}'
+
+{"dataset_url":"https://huggingface.co/datasets/la-bonne-alternance/2025-09-18","model_url":"https://huggingface.co/la-bonne-alternance/2025-10-24","test_score":0.3333,"train_score":0.8888,"version":"2025-10-24"}
 ```
 
 #### Score one text

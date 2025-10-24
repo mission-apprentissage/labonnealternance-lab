@@ -19,6 +19,7 @@ from huggingface_hub import HfApi
 from tqdm import tqdm
 import logging
 import numpy as np
+import requests
 tqdm.pandas()
 logger = logging.getLogger(__name__)
 
@@ -175,8 +176,8 @@ class Classifier:
         f1 = f1_score(labels, y_preds, average="weighted")
         return {"preds": y_preds.tolist(), "accuracy": round(accuracy,4), "f1": round(f1,4)}
 
-    # Dataset create and encode function
-    def create_dataset(self, version, ids, texts, labels, batch_size=20):
+    # Dataset create and encode function from payload
+    def create_dataset_local(self, version, ids, texts, labels, batch_size=20):
         """
         Create a pandas dataset from the given ids, texts, and labels.
         Args:
@@ -188,7 +189,57 @@ class Classifier:
             dataset: The created dataset with embeddings
         """
         # Create dataset
-        dataset = pd.DataFrame({'id': ids, 'text': texts, 'label': labels})
+        dataset = pd.DataFrame({'_id': ids, 'text': texts, 'label': labels})
+
+        # Batch encoding texts
+        embeddings = []
+        for i in tqdm(range(0, len(dataset), batch_size), desc=f"- Creating dataset '{self.version}'"):
+            batch = dataset['text'][i:i+batch_size]
+            batch_embeddings = self.encoding(list(batch))
+            embeddings.extend(batch_embeddings)
+        dataset['embeddings'] = embeddings
+
+        # Update dataset and model version
+        self.dataset = dataset
+        self.version = version
+        logger.info(f"Dataset '{self.version}' created: {dataset.shape}")
+        return dataset
+
+    # Dataset create and encode function from API
+    def create_dataset_online(self, version, endpoint="https://labonnealternance.apprentissage.beta.gouv.fr/api/classification", batch_size=20):
+        """
+        Create a pandas dataset from the given API endpoint.
+        Args:
+            version (str): Version of the dataset
+            endpoint (str) : API endpoint
+
+        Returns:
+            dataset: The created dataset with embeddings
+        """
+        # Make a get request
+        response = requests.get(endpoint)
+
+        # Test if response = 200
+        if response.status_code == 200:
+            # Get the list response
+            data = response.json()
+        else:
+            logger.info(f"Request failed with status code: {response.status_code}")
+            return None
+
+        if len(data) == 0:
+            logger.info("Dataset is empty!")
+            return None
+
+        # Create dataset
+        dataset = pd.DataFrame(data)
+
+        dataset['text'] = ['']*len(dataset)
+        
+        for col in ['workplace_name', 'workplace_description', 'offer_title', 'offer_description']:
+            dataset['text'] += dataset[col].fillna('') + '\n'
+
+        dataset = dataset[['_id', 'text', 'label']].dropna().reset_index(drop=True)
 
         # Batch encoding texts
         embeddings = []
