@@ -7,11 +7,15 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Development commands (like npm scripts)
-install: ## Install Python dependencies locally
-	cd server && python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+install: ## Install Python dependencies locally (auto-detects macOS vs Linux)
+ifeq ($(shell uname),Darwin)
+	cd server && python -m venv .venv && .venv/bin/pip install -r requirements-local.txt
+else
+	cd server && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+endif
 
 dev: ## Run development server locally (requires install first)
-	cd server && source .venv/bin/activate && python main.py
+	cd server && .venv/bin/python main.py
 
 # Docker commands
 build: ## Build Docker image

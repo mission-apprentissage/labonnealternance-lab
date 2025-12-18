@@ -1,10 +1,10 @@
-from __init__ import create_app  # importe create_app du __init__.py local
-
 import os
 from dotenv import load_dotenv
 import logging
 
 load_dotenv()
+
+from __init__ import create_app  # importe create_app du __init__.py local
 
 def setup_logging():
     logging.basicConfig(

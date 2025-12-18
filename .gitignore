@@ -168,3 +168,8 @@ tsconfig.tsbuildinfo
 .yarn/versions/
 
 .infra/vault/.vault-password-previous.gpg
+
+**/__pycache__/*
+**/.venv/*
+
+CLAUDE.md
