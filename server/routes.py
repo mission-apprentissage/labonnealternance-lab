@@ -82,7 +82,7 @@ def register_routes(app, get_model):
 
         # Create and save dataset
         dataset = model.create_dataset_online(version, endpoint)
-        if dataset:
+        if len(dataset) > 0 :
             dataset_url = model.save_dataset()
             logger.info(f"Saved dataset '{version}' to '{dataset_url}'")
 
