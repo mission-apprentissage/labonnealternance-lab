@@ -4,6 +4,15 @@ from flask import request, jsonify
 logger = logging.getLogger(__name__)
 
 def register_routes(app, get_model):
+    @app.before_request
+    def log_request():
+        if request.path != '/favicon.ico':
+            logger.info("%s %s", request.method, request.path)
+
+    @app.route("/favicon.ico")
+    def favicon():
+        return '', 204
+
     @app.route("/")
     def api_ready():
         logger.info("Healthcheck received on /")
@@ -17,7 +26,7 @@ def register_routes(app, get_model):
             logger.warning(log)
             return jsonify({'error': log}), 400
 
-        logger.debug("Received /model/load: %s", version)
+        logger.info("Received /model/load: %s", version)
         model = get_model(version=version)
         logger.info("Model version ready: %s", model.version)
         return jsonify({'model': model.version}), 200
