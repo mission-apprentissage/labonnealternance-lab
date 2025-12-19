@@ -239,7 +239,7 @@ class Classifier:
         for col in ['workplace_name', 'workplace_description', 'offer_title', 'offer_description']:
             dataset['text'] += dataset[col].fillna('') + '\n'
 
-        dataset = dataset[['_id', 'text', 'label']].dropna().reset_index(drop=True)
+        dataset = dataset[['text', 'label']].dropna().reset_index(drop=True)
 
         # Batch encoding texts
         embeddings = []

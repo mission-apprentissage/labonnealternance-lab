@@ -2,10 +2,13 @@ import logging
 from flask import Flask, jsonify
 from classifier import Classifier
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Global model variable - will be initialized in worker
 model = None
-HF_TOKEN = os.environ['HF_TOKEN']
+HF_TOKEN = os.getenv('HF_TOKEN')
 logger = logging.getLogger(__name__)
 
 def get_model(version=None):
