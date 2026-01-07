@@ -1,19 +1,35 @@
-FROM python:3.12-slim AS server
+FROM python:3.11-slim AS server
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential curl ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /app
 
-RUN chmod 1777 /tmp
+# Copy requirements first for better Docker layer caching
+COPY server/requirements-local.txt .
 
-RUN apt-get update \
-      && apt-get install -y build-essential curl \
-      && rm -rf /var/lib/apt/lists/*
+# Install Python dependencies with optimizations
+RUN pip install --prefer-binary --no-compile --no-deps \
+    -r requirements-local.txt \
+    && pip install --no-compile \
+    -r requirements-local.txt \
+    && rm -rf /root/.cache/pip/* /tmp/*
 
-COPY server/requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
+# Copy application code last for better caching
 COPY server/ .
+
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash app \
+    && chown -R app:app /app
+USER app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120", "--preload", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "__init__:create_app()"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "--error-logfile", "-", "--log-level", "info", "__init__:create_app()"]
