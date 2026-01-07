@@ -118,6 +118,12 @@ def register_routes(app, get_model):
 
         data = request.get_json()
         version = data.get('version')
+
+        model = get_model(version)
+        if model is None or not hasattr(model, 'classifier') or model.classifier is None:
+            logger.error("No model loaded in memory")
+            return jsonify({'error': 'No model loaded in memory. Please load a model first.'}), 503
+
         text = data.get('text')
         logger.debug("Received /model/score data: %s", data)
 
@@ -125,7 +131,6 @@ def register_routes(app, get_model):
             logger.warning("Invalid /model/score payload: 'text' is not a string")
             return jsonify({'error': '"text" must be a string.'}), 400
 
-        model = get_model(version)
         result = model.score(text)
         logger.info("Score computed for single text")
         return jsonify(result), 200
@@ -138,6 +143,12 @@ def register_routes(app, get_model):
 
         data = request.get_json()
         version = data.get('version')
+
+        model = get_model(version)
+        if model is None or not hasattr(model, 'classifier') or model.classifier is None:
+            logger.error("No model loaded in memory")
+            return jsonify({'error': 'No model loaded in memory. Please load a model first.'}), 503
+
         items = data.get('items')
         logger.debug("Received /model/scores data: %s", data)
 
@@ -155,7 +166,6 @@ def register_routes(app, get_model):
                 return jsonify({'error': '"id" must be str and "text" must be str.'}), 400
 
         # GPU is now available! Use batch processing for optimal performance
-        model = get_model(version)
         texts = [item['text'] for item in items]
         ids = [item['id'] for item in items]
         batch_scores = model.score_batch(texts)
