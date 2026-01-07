@@ -1,5 +1,5 @@
 # Makefile for LBA Classifier
-.PHONY: help install dev build up down logs test clean
+.PHONY: help install dev build down logs test clean
 
 # Default target
 help: ## Show this help message
@@ -14,27 +14,18 @@ else
 	cd server && python -m venv .venv && .venv/bin/pip install -r requirements.txt
 endif
 
-dev: ## Run development server locally (requires install first)
-	cd server && .venv/bin/python main.py
+dev: ## Run development server locally with hot-reload (requires install first)
+	cd server && FLASK_DEBUG=1 .venv/bin/python main.py
 
 # Docker commands
 build: ## Build Docker image
 	docker-compose build
 
-up: ## Start services with docker-compose
-	docker-compose up -d
-
-dev-up: ## Start development services with live reload
+dev-up: ## Start development services with live reload (Docker)
 	docker-compose --profile dev up -d server-dev
 
 down: ## Stop all services
 	docker-compose down
-
-logs: ## Show logs from all services
-	docker-compose logs -f
-
-logs-server: ## Show logs from server only
-	docker-compose logs -f server
 
 # Testing and utilities
 test: ## Test the API endpoints (requires server to be running)

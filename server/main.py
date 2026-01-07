@@ -14,8 +14,9 @@ def setup_logging():
     )
 
 port = int(os.getenv('LAB_SERVER_PORT', 8000))
+debug_mode = os.getenv('FLASK_DEBUG', '0') == '1'
 setup_logging()
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=debug_mode, use_reloader=debug_mode)
