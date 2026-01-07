@@ -30,11 +30,11 @@ down: ## Stop all services
 # Testing and utilities
 test: ## Test the API endpoints (requires server to be running)
 	@echo "Testing single classification..."
-	curl -X POST http://localhost:8000/score \
+	curl -X POST http://localhost:8000/model/score \
 		-H 'Content-Type: application/json' \
 		-d '{"text": "Développeur Python recherché pour startup"}'
 	@echo "\n\nTesting batch classification with real test data (10 job offers)..."
-	curl -X POST http://localhost:8000/scores \
+	curl -X POST http://localhost:8000/model/scores \
 		-H 'Content-Type: application/json' \
 		-d @test-data.json
 
@@ -42,7 +42,7 @@ health: ## Check API health
 	curl -f http://localhost:8000/ || echo "Service not available"
 
 version: ## Get API version
-	curl -s http://localhost:8000/version | python -m json.tool
+	curl -s http://localhost:8000/model/version
 
 clean: ## Clean up containers and volumes
 	docker-compose down -v
