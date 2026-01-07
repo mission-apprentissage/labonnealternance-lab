@@ -22,7 +22,7 @@ build: ## Build Docker image
 	docker-compose build
 
 dev-up: ## Start development services with live reload (Docker)
-	docker-compose --profile dev up -d server-dev
+	docker-compose up -d
 
 down: ## Stop all services
 	docker-compose down

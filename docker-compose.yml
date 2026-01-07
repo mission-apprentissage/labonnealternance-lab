@@ -1,6 +1,6 @@
 services:
   # Development service with live reload
-  server-dev:
+  server:
     build:
       context: .
       dockerfile: Dockerfile.local
@@ -13,5 +13,3 @@ services:
       - ./server:/app
     command: python main.py
     restart: unless-stopped
-    profiles:
-      - dev
