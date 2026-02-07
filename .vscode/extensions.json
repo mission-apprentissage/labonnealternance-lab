@@ -15,7 +15,7 @@
     "christian-kohler.npm-intellisense",
     "esbenp.prettier-vscode",
     "yoavbls.pretty-ts-errors",
-    "pflannery.vscode-versionlens",
+    "legalfina.npm-version-lens",
     "vitest.explorer",
     "fabiospampinato.vscode-terminals",
     "redhat.vscode-yaml"
