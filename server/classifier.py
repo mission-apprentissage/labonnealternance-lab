@@ -205,6 +205,24 @@ class Classifier:
         logger.info(f"Dataset '{self.version}' created: {dataset.shape}")
         return dataset
 
+    def undersample(self, dataset):
+        """
+        Undersample all classes to match the size of the minority class.
+
+        Args:
+            dataset (DataFrame): Dataset with a 'label' column.
+
+        Returns:
+            dataset (DataFrame): Balanced dataset.
+        """
+        min_count = dataset['label'].value_counts().min()
+        balanced = pd.concat([
+            group.sample(min_count, random_state=42)
+            for _, group in dataset.groupby('label')
+        ]).reset_index(drop=True)
+        logger.info(f"Undersampled dataset to {min_count} samples per class: {balanced['label'].value_counts().to_dict()}")
+        return balanced
+
     # Dataset create and encode function from API
     def create_dataset_online(self, version, endpoint="https://labonnealternance.apprentissage.beta.gouv.fr/api/classification", batch_size=20):
         """
@@ -240,6 +258,9 @@ class Classifier:
             dataset['text'] += dataset[col].fillna('') + '\n'
 
         dataset = dataset[['text', 'label']].dropna().reset_index(drop=True)
+
+        # Balance dataset by undersampling to the minority class size
+        dataset = self.undersample(dataset)
 
         # Batch encoding texts
         embeddings = []
@@ -333,7 +354,7 @@ class Classifier:
             verbose_feature_names_out=False)
 
         # SVM classifier
-        clf = SVC(random_state=42, kernel='rbf', probability=True, class_weight='balanced')
+        clf = SVC(random_state=42, kernel='rbf', probability=True)
         classifier = make_pipeline(preprocessor, clf)
         classifier.fit(X_train, y_train)
 
