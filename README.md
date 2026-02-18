@@ -50,8 +50,7 @@ make test          # Test API endpoints
 ### Install requirements
 
 ```shell
-$ cd server && python -m venv .venv && source .venv/bin/activate
-$ pip install -r requirements.txt
+make install
 ```
 
 ### Environment Configuration
@@ -59,7 +58,7 @@ $ pip install -r requirements.txt
 Initialize your local environment configuration:
 
 ```shell
-$ ./.bin/mna-lab init:env
+$ .bin/mna-lab init:env
 ```
 
 This command will create/update the `.env` file in the `server/` directory with the required configuration:
@@ -117,18 +116,10 @@ $ curl http://127.0.0.1:8000/model/load?version=2025-08-06
 {"model":"2025-08-06"}
 ```
 
-#### Train model version (local)
+#### Train model version
 
 ```shell
-$ curl http://127.0.0.1:8000/model/train/local -X POST -H 'Content-Type: application/json' -d '{"version": "2025-09-18", "ids":["1","2","3","4","5","6","7","8","9","10","11","12"], "texts": ["texte 1","texte 2","texte 3","texte 4","texte 5","texte 6","texte 7","texte 8","texte 9","texte 10","texte 11","texte 12"], "labels": ["cfa","cfa_entreprise","entreprise","cfa_entreprise","entreprise","cfa","cfa_entreprise","entreprise","cfa","entreprise","cfa_entreprise","entreprise"]}'
-
-{"dataset_url":"https://huggingface.co/datasets/la-bonne-alternance/2025-09-18","model_url":"https://huggingface.co/la-bonne-alternance/2025-09-18","test_score":0.3333,"train_score":0.8888,"version":"2025-09-18"}
-```
-
-#### Train model version (online)
-
-```shell
-$ curl http://127.0.0.1:8000/model/train/online -X POST -H 'Content-Type: application/json' -d '{"version": "2025-10-24", "endpoint":"https://labonnealternance.apprentissage.beta.gouv.fr/api/classification"}'
+$ curl http://127.0.0.1:8000/model/train -X POST -H 'Content-Type: application/json' -d '{"version": "2025-10-24", "endpoint":"https://labonnealternance.apprentissage.beta.gouv.fr/api/classification"}'
 
 {"dataset_url":"https://huggingface.co/datasets/la-bonne-alternance/2025-10-24","model_url":"https://huggingface.co/la-bonne-alternance/2025-10-24","test_score":0.3333,"train_score":0.8888,"version":"2025-10-24"}
 ```
@@ -160,7 +151,7 @@ $ curl http://127.0.0.1:8000/model/scores -X POST -H 'Content-Type: application/
 #### Evaluate models
 
 ```shell
-$ curl http://127.0.0.1:8000/model/evaluate -X POST -H 'Content-Type: application/json' -d '{"versions":["2025-08-06", "2025-09-18"], "texts": ["texte 1","texte 2","texte 3"], "labels": ["cfa","entreprise","entreprise_cfa"]}'
+$ curl http://127.0.0.1:8000/model/evaluate -X POST -H 'Content-Type: application/json' -d '{"versions":["2025-12-18", "2025-10-24"]}'
 ```
 
 ### Exit virtual environment
@@ -220,7 +211,6 @@ $ curl http://127.0.0.1:8000/model/score -X POST -H 'Content-Type: application/j
 ### Inference
 
 - **POST /model/score** - Classify single text
-
   - Body: `{"text": "...", "version": "YYYY-MM-DD"}` (version optional)
   - Returns: `{"label": "...", "scores": {...}, "model": "...", "text": "..."}`
 
@@ -230,17 +220,13 @@ $ curl http://127.0.0.1:8000/model/score -X POST -H 'Content-Type: application/j
 
 ### Training
 
-- **POST /model/train/local** - Train model with local data
-
-  - Body: `{"version": "...", "ids": [...], "texts": [...], "labels": [...]}`
-
-- **POST /model/train/online** - Train model from online endpoint
+- **POST /model/train** - Train model from online endpoint
   - Body: `{"version": "...", "endpoint": "..."}`
 
 ### Evaluation
 
-- **POST /model/evaluate** - Evaluate multiple model versions
-  - Body: `{"versions": [...], "texts": [...], "labels": [...]}`
+- **POST /model/evaluate** - Evaluate multiple model versions against the validation dataset
+  - Body: `{"versions": [...]}` (minimum 2 versions required)
 
 ## Features
 
