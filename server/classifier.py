@@ -333,7 +333,7 @@ class Classifier:
             verbose_feature_names_out=False)
 
         # SVM classifier
-        clf = SVC(random_state=42, kernel='rbf', probability=True)
+        clf = SVC(random_state=42, kernel='rbf', probability=True, class_weight='balanced')
         classifier = make_pipeline(preprocessor, clf)
         classifier.fit(X_train, y_train)
 
