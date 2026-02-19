@@ -1,7 +1,13 @@
+import json
 import logging
+import os
 from flask import request, jsonify
 
 logger = logging.getLogger(__name__)
+
+_dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'validation_dataset.json')
+with open(_dataset_path) as f:
+    _dataset = json.load(f)
 
 
 def register_routes(app, get_model):
@@ -15,14 +21,18 @@ def register_routes(app, get_model):
 
         data = request.get_json()
         versions = data.get('versions')
-        texts = data.get('texts')
-        labels = data.get('labels')
+
+        if not versions or len(versions) < 2:
+            logger.warning("Not enough versions for evaluation")
+            return jsonify({'error': 'Please provide at least 2 versions to evaluate'}), 400
 
         logger.debug("Received /model/evaluate data: %s", data)
 
+        texts = _dataset['texts']
+        labels = _dataset['labels']
+
         evaluation = {}
         for version in versions:
-            evaluation[version] = []
             model = get_model(version)
 
             if not model.classifier:

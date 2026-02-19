@@ -9,13 +9,13 @@ help: ## Show this help message
 # Development commands (like npm scripts)
 install: ## Install Python dependencies locally (auto-detects macOS vs Linux)
 ifeq ($(shell uname),Darwin)
-	cd server && python -m venv .venv && .venv/bin/pip install -r requirements-local.txt
+	cd server && python3 -m venv .venv && .venv/bin/pip install -r requirements-local.txt
 else
-	cd server && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+	cd server && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 endif
 
 dev: ## Run development server locally with hot-reload (requires install first)
-	cd server && FLASK_DEBUG=1 .venv/bin/python main.py
+	cd server && FLASK_DEBUG=1 .venv/bin/python3 main.py
 
 # Docker commands
 build: ## Build Docker image
