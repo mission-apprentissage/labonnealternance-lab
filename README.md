@@ -124,34 +124,59 @@ $ curl http://127.0.0.1:8000/model/train -X POST -H 'Content-Type: application/j
 {"dataset_url":"https://huggingface.co/datasets/la-bonne-alternance/2025-10-24","model_url":"https://huggingface.co/la-bonne-alternance/2025-10-24","test_score":0.3333,"train_score":0.8888,"version":"2025-10-24"}
 ```
 
-#### Score one text (without version - uses auto-loaded model)
-
+#### Score texts (without version - uses auto-loaded model)
 ```shell
-$ curl http://127.0.0.1:8000/model/score -X POST -H 'Content-Type: application/json' -d '{"text": "Développeur / Développeuse web. Conçoit, développe et met au point un projet d'application informatique."}'
+$ curl http://127.0.0.1:8000/model/score \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "workplace_name": ["Adecco"],
+    "workplace_description": ["L'\''agence Adecco de Nantes recrute et forme des ajusteurs monteurs H/F pour son client spécialisé dans le domaine de l'\''aéronautique Airbus Atlantic situé à Bouguenais (44020). Chez Airbus Atlantic, tous les Airbus naissent à Nantes ! Le site se spécialise dans la fabrication de caissons centraux de voilure et d'\''autres composants essentiels, utilisant des matériaux composites et de l'\''aluminium de grandes dimensions. Avec le Technocentre et le ZEDC, nous innovons pour l'\''aviation de demain. Airbus Atlantic, partenaire aéronautique global, est une entreprise renommée dans le secteur de l'\''aéronautique. Elle offre un environnement de travail dynamique et stimulant, avec de nombreuses opportunités d'\''évolution professionnelle. En rejoignant Airbus Atlantic, vous aurez la chance de travailler sur des projets passionnants et de contribuer au développement de technologies de pointe dans le domaine de l'\''aéronautique."],
+    "offer_title": ["Form. Ajusteur Monteur Aéronautique H/F"],
+    "offer_description": ["Détails de la formation : La formation se déroulera à Bouguenais pendant 6 mois. \nThéorie en centre de formation 3 mois : La préparation de l'\''assemblage de structures aéronefs : \nVérifier l'\''approvisionnement du matériel, outils, composants nécessaires aux opérations de montage d'\''éléments mécaniques. Ajuster les portées d'\''un élément sur une structure suivant un ou plusieurs plans [...]"]
+  }'
 
-{"label":"entreprise","model":"2025-12-18","scores":{"cfa":0.1004,"entreprise":0.5367,"entreprise_cfa":0.3629},"text":"Développeur / Développeuse web..."}
+[
+  {
+    "label": "publish",
+    "model": "2026-02-20",
+    "scores": {
+      "publish": 1.0,
+      "unpublish": 0.0
+    }
+  }
+]
 ```
 
-#### Score one text (with specific version)
+#### Score texts (with specific version)
 
 ```shell
-$ curl http://127.0.0.1:8000/model/score -X POST -H 'Content-Type: application/json' -d '{"version":"2025-08-06", "text": "Développeur / Développeuse web. Conçoit, développe et met au point un projet d'application informatique."}'
+$ curl http://127.0.0.1:8000/model/score \
+  -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "version": "2026-02-20",
+    "workplace_name": ["Adecco"],
+    "workplace_description": ["L'\''agence Adecco de Nantes recrute et forme des ajusteurs monteurs H/F pour son client spécialisé dans le domaine de l'\''aéronautique Airbus Atlantic situé à Bouguenais (44020). Chez Airbus Atlantic, tous les Airbus naissent à Nantes ! Le site se spécialise dans la fabrication de caissons centraux de voilure et d'\''autres composants essentiels, utilisant des matériaux composites et de l'\''aluminium de grandes dimensions. Avec le Technocentre et le ZEDC, nous innovons pour l'\''aviation de demain. Airbus Atlantic, partenaire aéronautique global, est une entreprise renommée dans le secteur de l'\''aéronautique. Elle offre un environnement de travail dynamique et stimulant, avec de nombreuses opportunités d'\''évolution professionnelle. En rejoignant Airbus Atlantic, vous aurez la chance de travailler sur des projets passionnants et de contribuer au développement de technologies de pointe dans le domaine de l'\''aéronautique."],
+    "offer_title": ["Form. Ajusteur Monteur Aéronautique H/F"],
+    "offer_description": ["Détails de la formation : La formation se déroulera à Bouguenais pendant 6 mois. \nThéorie en centre de formation 3 mois : La préparation de l'\''assemblage de structures aéronefs : \nVérifier l'\''approvisionnement du matériel, outils, composants nécessaires aux opérations de montage d'\''éléments mécaniques. Ajuster les portées d'\''un élément sur une structure suivant un ou plusieurs plans [...]"]
+  }'
 
-{"label":"entreprise","model":"2025-08-06","scores":{"cfa":0.2199,"entreprise":0.5492,"entreprise_cfa":0.2309},"text":"Développeur / Développeuse web..."}
+[
+  {
+    "label": "publish",
+    "model": "2026-02-20",
+    "scores": {
+      "publish": 1.0,
+      "unpublish": 0.0
+    }
+  }
+]
 ```
-
-#### Score multiple texts (batch processing with GPU support)
-
-```shell
-$ curl http://127.0.0.1:8000/model/scores -X POST -H 'Content-Type: application/json' -d '{"items": [{"id":"1", "text": "Text 1..."}, {"id":"2", "text": "Text 2..."}]}'
-
-[{"id":"1","label":"entreprise","model":"2025-12-18","scores":{"cfa":0.2387,"entreprise":0.4857,"entreprise_cfa":0.2756},"text":"Text 1..."},{"id":"2","label":"entreprise","model":"2025-12-18","scores":{"cfa":0.2102,"entreprise":0.5886,"entreprise_cfa":0.2012},"text":"Text 2..."}]
-```
-
 #### Evaluate models
 
 ```shell
-$ curl http://127.0.0.1:8000/model/evaluate -X POST -H 'Content-Type: application/json' -d '{"versions":["2025-12-18", "2025-10-24"]}'
+$ curl http://127.0.0.1:8000/model/evaluate -X POST -H 'Content-Type: application/json' -d '{"versions":["2026-02-20", "2026-02-20"]}'
 ```
 
 ### Exit virtual environment
