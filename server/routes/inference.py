@@ -21,15 +21,20 @@ def register_routes(app, get_model):
             logger.error("No model loaded in memory")
             return jsonify({'error': 'No model loaded in memory. Please load a model first.'}), 503
 
-        text = data.get('text')
+        texts = {}
+        texts['workplace_name'] = data.get('workplace_name')
+        texts['workplace_description'] = data.get('workplace_description')
+        texts['offer_title'] = data.get('offer_title')
+        texts['offer_description'] = data.get('offer_description')
         logger.debug("Received /model/score data: %s", data)
 
-        if not isinstance(text, str):
-            logger.warning("Invalid /model/score payload: 'text' is not a string")
-            return jsonify({'error': '"text" must be a string.'}), 400
+        for key in texts.keys():
+            if not isinstance(texts[key], list):
+                logger.warning(f"Invalid /model/score payload: '{key}' field is not a list")
+                return jsonify({'error': f'"{key}" field must be a list.'}), 400
 
-        result = model.score(text)
-        logger.info("Score computed for single text")
+        result = model.score(texts)
+        logger.info("Score computed for texts")
         return jsonify(result), 200
 
     @app.route('/model/scores', methods=['POST'])

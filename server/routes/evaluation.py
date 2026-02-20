@@ -2,13 +2,16 @@ import json
 import logging
 import os
 from flask import request, jsonify
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 _dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'validation_dataset.json')
+"""
 with open(_dataset_path) as f:
     _dataset = json.load(f)
-
+"""
+_dataset = pd.read_json(_dataset_path, lines=True)
 
 def register_routes(app, get_model):
     """Register evaluation routes."""
@@ -28,8 +31,8 @@ def register_routes(app, get_model):
 
         logger.debug("Received /model/evaluate data: %s", data)
 
-        texts = _dataset['texts']
-        labels = _dataset['labels']
+        texts = _dataset[['workplace_name', 'workplace_description', 'offer_title', 'offer_description']].to_dict(orient='records')
+        labels = _dataset['label'].to_list()
 
         evaluation = {}
         for version in versions:
