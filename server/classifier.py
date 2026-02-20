@@ -120,7 +120,7 @@ class Classifier:
 
         if len(features.columns) != 3840:
             logger.warning(f"Features size {len(features.columns)} incompatible on score function")
-            return jsonify({'error': 'Feature size incompatible'}), 400
+            return {'error': 'Feature size incompatible', 'status_code': 400}
         
         # Batch predict labels and probabilities
         y_labels = self.classifier.predict(features)
