@@ -6,12 +6,12 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-_dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'validation_dataset.json')
+_dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'validation-dataset.json')
 """
 with open(_dataset_path) as f:
     _dataset = json.load(f)
 """
-_dataset = pd.read_json(_dataset_path, lines=True)
+_dataset = pd.read_json(_dataset_path)
 
 def register_routes(app, get_model):
     """Register evaluation routes."""
