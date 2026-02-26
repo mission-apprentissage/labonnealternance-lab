@@ -105,5 +105,5 @@ echo "Création des images docker locales (docker build)"
 
 echo "Build ui:$NEXT_VERSION ..."
 "$ROOT_DIR/.bin/scripts/release-app.sh" $NEXT_VERSION push
-git tag -f "v$NEXT_VERSION"
+git tag -f -m "v$NEXT_VERSION" "v$NEXT_VERSION"
 git push -f origin "v$NEXT_VERSION"

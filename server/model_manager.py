@@ -84,13 +84,14 @@ def load_latest_model():
     """
     global model
 
-    logger.info("Loading latest model at startup...")
-    latest_version = get_latest_model_version()
-
-    if not latest_version:
-        error_msg = "No model version found on HuggingFace. Cannot start server without a model."
-        logger.error(error_msg)
-        raise RuntimeError(error_msg)
+    # TODO: restore dynamic version fetching once model availability is stable
+    # latest_version = get_latest_model_version()
+    # if not latest_version:
+    #     error_msg = "No model version found on HuggingFace. Cannot start server without a model."
+    #     logger.error(error_msg)
+    #     raise RuntimeError(error_msg)
+    latest_version = "2025-12-18"
+    logger.info(f"Loading pinned model version: {latest_version}")
 
     try:
         model = get_model(version=latest_version)
