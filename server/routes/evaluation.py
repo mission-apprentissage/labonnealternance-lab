@@ -25,9 +25,9 @@ def register_routes(app, get_model):
         data = request.get_json()
         versions = data.get('versions')
 
-        if not versions or len(versions) < 2:
-            logger.warning("Not enough versions for evaluation")
-            return jsonify({'error': 'Please provide at least 2 versions to evaluate'}), 400
+        if not versions or len(versions) < 1:
+            logger.warning("No version provided for evaluation")
+            return jsonify({'error': 'Please provide at least 1 version to evaluate'}), 400
 
         logger.debug("Received /model/evaluate data: %s", data)
 
