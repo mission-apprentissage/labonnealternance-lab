@@ -2,28 +2,29 @@
 
 ## Vue d'ensemble
 
-Le service classifie les textes d'offres d'emploi en 3 catégories :
+Le service classifie les offres d'emploi en 2 catégories :
 
-- **`cfa`** — offre publiée par un centre de formation
-- **`entreprise`** — offre publiée par une entreprise
-- **`entreprise_cfa`** — offre publiée par une entreprise également centre de formation
+- **`publish`** — offre publiable (entreprise ou entreprise_cfa)
+- **`unpublish`** — offre non publiable (cfa)
 
 ---
 
 ## Pipeline d'entrainement
 
-Le pipeline se décompose en 4 étapes successives :
-
 ```
 Données brutes (API)
        ↓
-  Undersampling       ← équilibrage des classes
+  Mapping des labels      ← cfa → unpublish, reste → publish
        ↓
-  Embeddings          ← CamemBERT transforme le texte en vecteurs numériques
+  Split offer_description ← découpe la description en 2 moitiés
        ↓
-  PCA + StandardScaler ← réduction de dimension et normalisation
+  Embeddings (x5 champs)  ← SentenceTransformer encode chaque champ séparément
        ↓
-  SVM (SVC)           ← classification finale
+  PCA + StandardScaler    ← réduction de dimension et normalisation
+       ↓
+  SMOTE                   ← surééchantillonnage de la classe minoritaire
+       ↓
+  Logistic Regression     ← classification finale
 ```
 
 ### 1. Collecte des données
@@ -37,32 +38,31 @@ Les données sont récupérées depuis l'endpoint LBA (`/api/classification`). C
 | `offer_title` | Titre de l'offre |
 | `offer_description` | Description du poste |
 
-Ces 4 champs sont **concaténés** pour former le texte d'entrée du modèle :
-```
-workplace_name + "\n" + workplace_description + "\n" + offer_title + "\n" + offer_description
-```
+### 2. Transformation des labels
 
-### 2. Undersampling (équilibrage des classes)
+Les labels sont remappés en binaire :
 
-Avant l'encodage, les classes sont rééquilibrées en sous-échantillonnant les classes sur-représentées pour matcher la taille de la classe la moins représentée.
-
-**Exemple :**
 ```
-Avant : cfa=252, entreprise=659, entreprise_cfa=509
-Après : cfa=252, entreprise=252, entreprise_cfa=252  (total: 756)
+cfa           → unpublish
+entreprise    → publish
+entreprise_cfa → publish
 ```
 
-> Cette étape est critique. Sans elle, le modèle apprend à prédire majoritairement la classe dominante et ignore les autres.
+### 3. Découpe de la description
 
-### 3. Encodage en embeddings (CamemBERT)
+`offer_description` est découpée en deux moitiés (`offer_description_1`, `offer_description_2`). Le modèle encode donc **5 champs** au total, capturant séparément le début et la fin de la description.
 
-Chaque texte est transformé en un vecteur de 768 dimensions par le modèle de langage `almanach/camembertav2-base` (CamemBERT v2, spécialisé français).
+### 4. Encodage en embeddings (SentenceTransformer)
 
-L'embedding est calculé comme la **moyenne des représentations de tous les tokens**, puis normalisé à longueur unitaire.
+Chaque champ est encodé **séparément** par le modèle de langage (`almanach/camembertav2-base` via SentenceTransformer), produisant un vecteur de 768 dimensions par champ.
 
-### 4. PCA + Normalisation
+Au total : **5 champs × 768 dimensions = 3840 features** par offre.
 
-Avant la classification, les embeddings passent par un pipeline scikit-learn :
+> L'encodage séparé de chaque champ permet au modèle de distinguer l'importance relative du nom de l'entreprise, de la description, et du titre/description de l'offre.
+
+### 5. PCA + Normalisation
+
+Avant la classification, les features passent par un pipeline sklearn :
 
 1. **`SimpleImputer`** — remplace les valeurs manquantes par la médiane
 2. **`StandardScaler`** — centre et normalise les features
@@ -70,11 +70,19 @@ Avant la classification, les embeddings passent par un pipeline scikit-learn :
 
 Le nombre de composantes PCA est déterminé automatiquement à chaque entrainement.
 
-### 5. Classifieur SVM
+### 6. SMOTE (équilibrage des classes)
 
-Le modèle final est un **Support Vector Machine** avec noyau RBF (`rbf`), qui sépare les 3 classes dans l'espace réduit par PCA.
+SMOTE (**S**ynthetic **M**inority **O**versampling **TE**chnique) génère des exemples synthétiques pour la classe minoritaire afin d'équilibrer les classes.
 
-Paramètres fixes : `kernel='rbf'`, `probability=True`, `random_state=42`.
+Contrairement à l'undersampling qui supprime des exemples, SMOTE **crée de nouveaux exemples interpolés** dans l'espace des features, préservant ainsi l'intégralité des données originales.
+
+> SMOTE est appliqué uniquement sur les données d'entrainement (dans le pipeline), jamais sur les données de test.
+
+### 7. Classifieur — Régression Logistique
+
+Le classifieur final est une **Régression Logistique** (`LogisticRegression`), qui produit des probabilités pour chaque classe (`publish`, `unpublish`).
+
+Paramètres : `random_state=42`, `max_iter=1000`.
 
 ---
 
@@ -82,30 +90,21 @@ Paramètres fixes : `kernel='rbf'`, `probability=True`, `random_state=42`.
 
 ### Volume de données
 
-Plus il y a d'offres étiquetées par classe, meilleure est la généralisation. Le modèle actuel est limité par le nombre d'offres `cfa` disponibles (classe minoritaire).
-
-| Situation | Effet |
-|---|---|
-| Peu de données (< 200/classe) | Modèle peu généralisable, scores instables |
-| Données équilibrées (≥ 500/classe) | Meilleure discrimination entre les classes |
+Plus il y a d'offres étiquetées, meilleure est la généralisation. La classe `unpublish` (cfa) est généralement la classe minoritaire — SMOTE compensera, mais plus de données réelles restent préférables.
 
 ### Équilibre des classes
 
-Le déséquilibre est le facteur le plus impactant. Si une classe représente 50%+ des données, le modèle tend à la prédire par défaut (biais de majorité).
-
-**Solution appliquée :** undersampling dynamique — automatiquement appliqué à chaque entrainement.
+Le déséquilibre est géré automatiquement par SMOTE. Cependant, un déséquilibre trop fort (ex. 10x) peut dégrader la qualité des exemples synthétiques générés.
 
 ### Qualité des textes
 
-Le modèle est sensible au contenu textuel des offres :
-
-- Des textes vides ou très courts dégradent la précision
-- Des textes avec du HTML non nettoyé introduisent du bruit
-- Les 4 champs contribuent au signal — leur absence réduit la qualité
+- Des champs vides (`workplace_description`, `offer_description`) réduisent l'information disponible
+- Les 5 champs encodés contribuent chacun au signal — leur absence partielle est tolérée mais dégrade la précision
+- Les textes avec du HTML ou des espaces parasites introduisent du bruit
 
 ### Séparation entrainement / test
 
-Le split est 80% entrainement / 20% test, stratifié par classe (`stratify=label_df`). Le `random_state=42` garantit la reproductibilité.
+Le split est **80% entrainement / 20% test**, stratifié par classe (`stratify=labels`). Le `random_state=42` garantit la reproductibilité.
 
 ---
 
@@ -122,15 +121,15 @@ Lors d'un entrainement, deux scores sont retournés :
 | `train_score` | Précision sur les données d'entrainement (80%) |
 | `test_score` | Précision sur les données de test (20%) |
 
-Ces scores sont calculés sur les **mêmes données que l'entrainement** (même endpoint, même distribution). Ils mesurent la capacité du modèle à apprendre, pas sa généralisation réelle.
+Ces scores mesurent la capacité du modèle à apprendre sur les données de l'endpoint. Ils ne reflètent pas nécessairement les performances sur des cas réels.
 
-> Un `test_score` élevé (> 0.80) ne garantit pas de bonnes performances sur des cas réels si les données d'entrainement ne sont pas représentatives.
+> Un écart important entre `train_score` et `test_score` (> 0.10) indique du surapprentissage.
 
 ### Dataset de validation humain
 
-Pour mesurer la performance réelle, le endpoint `/model/evaluate` compare plusieurs versions sur un jeu de données **validé manuellement** (`server/data/validation_dataset.json`).
+Le endpoint `/model/evaluate` mesure les performances sur un jeu de données **validé manuellement** (`server/data/validation-dataset.json`).
 
-Ce dataset contient 25 offres annotées à la main. Les métriques retournées sont :
+Les métriques retournées :
 
 - **`accuracy`** — taux de prédiction correcte
 - **`f1`** — F1-score pondéré (plus robuste sur données déséquilibrées)
@@ -139,9 +138,9 @@ Ce dataset contient 25 offres annotées à la main. Les métriques retournées s
 
 ## Bonnes pratiques
 
-### Toujours comparer sur le dataset humain
+### Toujours valider sur le dataset humain
 
-Le dataset de validation manuel (`/model/evaluate`) est la seule mesure fiable. Comparer systématiquement une nouvelle version avec la version en production avant de déployer.
+Le dataset de validation manuel est la seule mesure fiable de la qualité réelle. Comparer systématiquement une nouvelle version avant de déployer.
 
 ```shell
 curl http://127.0.0.1:8000/model/evaluate -X POST \
@@ -151,56 +150,54 @@ curl http://127.0.0.1:8000/model/evaluate -X POST \
 
 ### Alimenter le dataset de validation au fil du temps
 
-Ajouter régulièrement de nouvelles offres vérifiées par des humains dans `server/data/validation_dataset.json`. Plus ce dataset est représentatif et large, plus la comparaison de modèles est fiable.
+Ajouter régulièrement de nouvelles offres vérifiées par des humains dans `server/data/validation-dataset.json`. Plus ce dataset est représentatif, plus la comparaison de modèles est fiable.
 
 ### Réentrainer quand les données évoluent
 
 Le modèle doit être réentrainé si :
-- Le nombre d'offres disponibles dans l'endpoint augmente significativement
+- Le volume de données de l'endpoint augmente significativement
 - La distribution des labels change dans les données sources
 - La qualité des prédictions se dégrade sur de nouvelles offres
 
 ### Nommer les versions par date
 
-Les versions suivent le format `YYYY-MM-DD` (ex: `2025-12-18`). Cela permet de trier chronologiquement et de retrouver la version de production facilement.
+Les versions suivent le format `YYYY-MM-DD` (ex: `2026-02-20`). Cela permet de trier chronologiquement et de retrouver la version en production facilement.
 
 ---
 
 ## Paramètres fixes
 
-Ces paramètres sont fixes dans le code et ne varient pas entre les entrainements :
-
 | Paramètre | Valeur | Raison |
 |---|---|---|
-| `random_state` | `42` | Reproductibilité du split et du SVM |
+| `random_state` | `42` | Reproductibilité du split, SMOTE, et LR |
 | `test_size` | `0.2` | Split 80/20 standard |
 | `pca_threshold` | `0.9999` | Conservation de 99,99% de la variance |
 | `lang_model` | `almanach/camembertav2-base` | Meilleur modèle français disponible |
-| `svc_kernel` | `rbf` | Adapté aux espaces de haute dimension |
-| `batch_size` | `20` | Encodage par batch pour la mémoire GPU |
+| `batch_size` | `32` | Encodage par batch pour la mémoire GPU |
+| `max_iter` | `1000` | Assure la convergence de la régression logistique |
+| `features` | `3840` | 5 champs × 768 dimensions par embedding |
 
 ---
 
 ## Résumé visuel
 
 ```
-API endpoint
-    │
-    ▼
-Offres brutes (workplace_name + workplace_description + offer_title + offer_description)
-    │
-    ▼
-Undersampling → équilibrer cfa / entreprise / entreprise_cfa au nombre minimal
-    │
-    ▼
-CamemBERT (almanach/camembertav2-base) → vecteur 768 dimensions par offre
-    │
-    ▼
-Pipeline sklearn: SimpleImputer → StandardScaler → PCA (99.99% variance)
-    │
-    ▼
-SVM (kernel RBF) → prédiction : "cfa" | "entreprise" | "entreprise_cfa"
-    │
-    ▼
-Sauvegarde sur HuggingFace Hub (modèle + dataset)
+API endpoint  →  offres avec labels : cfa / entreprise / entreprise_cfa
+                                               ↓
+                              Remapping : cfa → unpublish
+                                          reste → publish
+                                               ↓
+                     Split offer_description en 2 moitiés
+                                               ↓
+         SentenceTransformer (almanach/camembertav2-base)
+         encode 5 champs séparément → 5 × 768 = 3840 features
+                                               ↓
+         Pipeline sklearn:
+           SimpleImputer → StandardScaler → PCA (99.99% variance)
+                                               ↓
+                        SMOTE (oversampling classe minoritaire)
+                                               ↓
+                Logistic Regression → "publish" | "unpublish"
+                                               ↓
+                  Sauvegarde sur HuggingFace Hub
 ```
