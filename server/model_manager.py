@@ -1,7 +1,7 @@
 import logging
 from huggingface_hub import HfApi
 from classifier import Classifier
-from config import HF_TOKEN, ORG_NAME
+from config import HF_TOKEN, ORG_NAME, MODEL_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ def load_latest_model():
     #     error_msg = "No model version found on HuggingFace. Cannot start server without a model."
     #     logger.error(error_msg)
     #     raise RuntimeError(error_msg)
-    latest_version = "2025-12-18"
+    latest_version = MODEL_VERSION
     logger.info(f"Loading pinned model version: {latest_version}")
 
     try:

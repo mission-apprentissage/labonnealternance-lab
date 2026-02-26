@@ -23,6 +23,7 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 import logging
 import numpy as np
 import requests
+from config import MODEL_VERSION, LANG_MODEL
 tqdm.pandas()
 logger = logging.getLogger(__name__)
 
@@ -42,8 +43,8 @@ class Classifier:
         classifier: The trained classifier model.
         dataset: The dataset used for training.
     """
-    def __init__(self, version="2025-02-20", 
-                 lang_model="almanach/camembertav2-base",
+    def __init__(self, version=MODEL_VERSION,
+                 lang_model=LANG_MODEL,
                  token=""):
         """
         Initializes the Trainer with a pre-trained language model.
