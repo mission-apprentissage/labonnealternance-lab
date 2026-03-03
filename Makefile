@@ -27,16 +27,12 @@ dev-up: ## Start development services with live reload (Docker)
 down: ## Stop all services
 	docker-compose down
 
-# Testing and utilities
-test: ## Test the API endpoints (requires server to be running)
-	@echo "Testing single classification..."
-	curl -X POST http://localhost:8000/model/score \
+test: ## Test the /model/scores endpoint using validation dataset (requires server to be running)
+	@echo "Testing batch classification with validation dataset..."
+	jq '{items: [to_entries[] | {id: (.key | tostring), workplace_name: .value.workplace_name, workplace_description: .value.workplace_description, offer_title: .value.offer_title, offer_description: .value.offer_description}]}' server/data/validation-dataset.json \
+		| curl -X POST http://localhost:8000/model/scores \
 		-H 'Content-Type: application/json' \
-		-d '{"text": "Développeur Python recherché pour startup"}'
-	@echo "\n\nTesting batch classification with real test data (10 job offers)..."
-	curl -X POST http://localhost:8000/model/scores \
-		-H 'Content-Type: application/json' \
-		-d @test-data.json
+		-d @-
 
 health: ## Check API health
 	curl -f http://localhost:8000/ || echo "Service not available"
