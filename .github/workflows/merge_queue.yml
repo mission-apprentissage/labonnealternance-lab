@@ -1,8 +1,0 @@
-name: Merge Queue
-on:
-  merge_group:
-    types: [checks_requested]
-
-jobs:
-  tests:
-    uses: "./.github/workflows/ci.yml"

@@ -37,6 +37,6 @@ fi
 export CHANNEL=$(get_channel $VERSION)
 
 # "$@" is the list of environements
-docker buildx bake -f "$ROOT_DIR/docker-bake.json" --builder "mna-lab" --${mode} "$@"
+docker buildx bake -f "$ROOT_DIR/docker-bake.json" --builder "mna-lab" --progress=plain --${mode} "$@"
 docker builder prune --builder "mna-lab" --keep-storage 20GB --force
 docker buildx stop --builder "mna-lab"
