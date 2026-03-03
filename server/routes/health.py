@@ -1,5 +1,6 @@
 import logging
 from flask import jsonify
+from config import PUBLIC_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -14,4 +15,4 @@ def register_routes(app):
     @app.route("/")
     def api_ready():
         logger.info("Healthcheck received on /")
-        return jsonify({'status': "LBA classifier API ready."})
+        return jsonify({'status': "LBA classifier API ready.", 'version': PUBLIC_VERSION})

@@ -24,6 +24,9 @@ RUN pip install --prefer-binary --no-compile --no-deps \
     -r requirements.txt \
     && rm -rf /root/.cache/pip/* /tmp/*
 
+ARG PUBLIC_VERSION=unknown
+ENV PUBLIC_VERSION=${PUBLIC_VERSION}
+
 # Copy application code last for better caching
 COPY server/ .
 
