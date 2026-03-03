@@ -13,6 +13,7 @@ module.exports = {
     [
       "semantic-release-slack-bot",
       {
+        packageName: "labonnealternance-lab",
         notifyOnSuccess: true,
         notifyOnFail: true,
         markdownReleaseNotes: true,
