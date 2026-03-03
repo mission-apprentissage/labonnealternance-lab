@@ -58,19 +58,26 @@ def register_routes(app, get_model):
             logger.warning("Invalid /model/scores payload: 'items' is not a list")
             return jsonify({'error': '"items" must be a list.'}), 400
 
+        required_fields = ['id', 'workplace_name', 'workplace_description', 'offer_title', 'offer_description']
+        text_fields = ['workplace_name', 'workplace_description', 'offer_title', 'offer_description']
+
         # Validate all items first
         for idx, item in enumerate(items):
-            if not isinstance(item, dict) or 'id' not in item or 'text' not in item:
-                logger.warning("Invalid item at index %d: missing 'id' or 'text'", idx)
-                return jsonify({'error': 'Each item must have "id" and "text".'}), 400
-            if not isinstance(item['id'], str) or not isinstance(item['text'], str):
-                logger.warning("Invalid item types at index %d: id=%s, text=%s", idx, type(item['id']), type(item['text']))
-                return jsonify({'error': '"id" must be str and "text" must be str.'}), 400
+            if not isinstance(item, dict) or not all(f in item for f in required_fields):
+                logger.warning("Invalid item at index %d: missing required fields", idx)
+                return jsonify({'error': f'Each item must have {required_fields}.'}), 400
+            if not isinstance(item['id'], str):
+                logger.warning("Invalid item types at index %d: 'id' is not a str", idx)
+                return jsonify({'error': '"id" must be a str.'}), 400
 
-        # GPU is now available! Use batch processing for optimal performance
-        texts = [item['text'] for item in items]
+        texts = {
+            'workplace_name': [item['workplace_name'] or '' for item in items],
+            'workplace_description': [item['workplace_description'] or '' for item in items],
+            'offer_title': [item['offer_title'] or '' for item in items],
+            'offer_description': [item['offer_description'] or '' for item in items],
+        }
         ids = [item['id'] for item in items]
-        batch_scores = model.score_batch(texts)
+        batch_scores = model.score(texts)
         results = []
         for item_id, score_result in zip(ids, batch_scores):
             results.append({'id': item_id, **score_result})
