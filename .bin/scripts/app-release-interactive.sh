@@ -2,6 +2,14 @@
 
 set -euo pipefail
 
+if [ -z "${SCRIPT_DIR:-}" ]; then
+  export SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+fi
+
+if [ -z "${ROOT_DIR:-}" ]; then
+  export ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+fi
+
 echo "Push les images docker sur le registry github (https://ghcr.io/mission-apprentissage/)"
 
 readonly VERSION=$("${ROOT_DIR}/.bin/scripts/get-version.sh")
@@ -25,9 +33,9 @@ generate_next_patch_version() {
   local current_version_commit_id=$(git rev-list -n 1 $VERSION 2> /dev/null)
 
   if [ "$current_commit_id" == "$current_version_commit_id" ]; then
-    echo $VERSION;
+    echo $VERSION
     return
-  fi;
+  fi
 
   local version="$VERSION"
   
@@ -68,7 +76,7 @@ select_version() {
       *)
         ;;
     esac
-  fi;
+  fi
 
   read -p "Current version $VERSION > New version ($NEXT_PATCH_VERSION) ? [Y/n]: " response
   case $response in
@@ -104,6 +112,6 @@ esac
 echo "Création des images docker locales (docker build)"
 
 echo "Build ui:$NEXT_VERSION ..."
-"$ROOT_DIR/.bin/scripts/release-app.sh" $NEXT_VERSION push
+"$ROOT_DIR"/.bin/mna-lab app:release $NEXT_VERSION push
 git tag -f -m "v$NEXT_VERSION" "v$NEXT_VERSION"
 git push -f origin "v$NEXT_VERSION"
