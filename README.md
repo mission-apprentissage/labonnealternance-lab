@@ -58,7 +58,7 @@ make install
 Initialize your local environment configuration:
 
 ```shell
-$ .bin/mna-lab init:env
+$ .bin/mna-lab env:init
 ```
 
 This command will create/update the `.env` file in the `server/` directory with the required configuration:
