@@ -53,7 +53,7 @@ run-prod: ## Run production container
 
 # Release commands
 release-interactive: ## Build & Push Docker image releases (interactive)
-	./.bin/mna-lab release:interactive
+	./.bin/mna-lab app:release:interactive
 
 deploy: ## Deploy application to environment (usage: make deploy ENV=<env> USER=<username>)
-	./.bin/mna-lab deploy production
+	./.bin/mna-lab app:deploy production
