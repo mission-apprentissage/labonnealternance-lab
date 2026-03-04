@@ -16,8 +16,10 @@ jobs:
       - name: Checkout project
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.TOKEN_MNA_SHARED }}
+          persist-credentials: false
+          submodules: recursive
           fetch-depth: 0
-          persist-credentials: true
 
       - uses: actions/setup-node@v4
         with:
