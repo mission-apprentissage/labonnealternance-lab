@@ -23,7 +23,7 @@ from imblearn.pipeline import Pipeline as ImbPipeline
 import logging
 import numpy as np
 import requests
-from config import MODEL_VERSION, LANG_MODEL
+from config import MODEL_VERSION, LANG_MODEL, LBA_API_TOKEN
 tqdm.pandas()
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,16 @@ class Classifier:
             dataset: The created dataset with embeddings
         """
         # Load data
-        dataset = pd.read_json(endpoint)
+        if not LBA_API_TOKEN:
+            raise ValueError("LBA_API_TOKEN is required to load the online classification dataset")
+
+        response = requests.get(
+            endpoint,
+            headers={"Authorization": LBA_API_TOKEN},
+            timeout=(5, None),
+        )
+        response.raise_for_status()
+        dataset = pd.DataFrame(response.json())
         dataset.fillna('', inplace=True)
 
         # Update labels

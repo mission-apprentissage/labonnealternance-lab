@@ -14,3 +14,6 @@ LANG_MODEL = "almanach/camembertav2-base"
 # Server configuration
 SERVER_PORT = int(os.getenv('LAB_SERVER_PORT', 8000))
 PUBLIC_VERSION = os.getenv('PUBLIC_VERSION', 'unknown')
+
+# Training token
+LBA_API_TOKEN = os.getenv('LBA_API_TOKEN')
