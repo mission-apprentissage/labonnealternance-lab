@@ -8,8 +8,9 @@ HF_TOKEN = os.getenv('HF_TOKEN')
 ORG_NAME = "la-bonne-alternance"
 
 # Model configuration
-MODEL_VERSION = "2026-02-20"
-LANG_MODEL = "almanach/camembertav2-base"
+MODEL_VERSION = "publish-2026-03-31"
+# LANG_MODEL = "almanach/camembertav2-base"
+LANG_MODEL = "BAAI/bge-m3"
 
 # Server configuration
 SERVER_PORT = int(os.getenv('LAB_SERVER_PORT', 8000))

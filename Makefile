@@ -34,6 +34,13 @@ test: ## Test the /model/scores endpoint using validation dataset (requires serv
 		-H 'Content-Type: application/json' \
 		-d @-
 
+test-small: ## Test the /model/scores endpoint using small dataset (requires server to be running)
+	@echo "Testing classification with small dataset..."
+	jq '{items: [to_entries[] | {id: (.key | tostring), workplace_name: .value.workplace_name, workplace_description: .value.workplace_description, offer_title: .value.offer_title, offer_description: .value.offer_description}]}' server/data/test-dataset.json \
+		| curl -X POST http://localhost:8000/model/scores \
+		-H 'Content-Type: application/json' \
+		-d @-
+
 health: ## Check API health
 	curl -f http://localhost:8000/ || echo "Service not available"
 
