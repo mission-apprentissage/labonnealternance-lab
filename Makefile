@@ -29,7 +29,21 @@ down: ## Stop all services
 
 test: ## Test the /model/scores endpoint using validation dataset (requires server to be running)
 	@echo "Testing batch classification with validation dataset..."
-	jq '{items: [to_entries[] | {id: (.key | tostring), workplace_name: .value.workplace_name, workplace_description: .value.workplace_description, offer_title: .value.offer_title, offer_description: .value.offer_description}]}' server/data/validation-dataset.json \
+	@LABELS=$$(jq '[.[].label]' server/data/validation-dataset.json) && \
+	LABELS_CLAUDE=$$(jq '[.[].label_claude]' server/data/validation-dataset.json) && \
+	RESPONSE=$$(jq '{items: [to_entries[] | {id: (.key | tostring), workplace_name: .value.workplace_name, workplace_description: .value.workplace_description, offer_title: .value.offer_title, offer_description: .value.offer_description}]}' server/data/validation-dataset.json \
+		| curl -s -X POST http://localhost:8000/model/scores \
+		-H 'Content-Type: application/json' \
+		-d @-) && \
+	echo "$$RESPONSE" | jq . && \
+	echo "$$RESPONSE" | jq --argjson labels "$$LABELS" \
+		'[to_entries[] | {predicted: .value.label, expected: $$labels[.key], match: (.value.label == $$labels[.key])}] | {total: length, matches: [.[] | select(.match)] | length} | "[label]        ==> \(.matches)/\(.total) matches (\(if .total > 0 then (.matches * 100 / .total | round) else 0 end)%)"' -r && \
+	echo "$$RESPONSE" | jq --argjson labels "$$LABELS_CLAUDE" \
+		'[to_entries[] | {predicted: .value.label, expected: $$labels[.key], match: (.value.label == $$labels[.key])}] | {total: length, matches: [.[] | select(.match)] | length} | "[label_claude] ==> \(.matches)/\(.total) matches (\(if .total > 0 then (.matches * 100 / .total | round) else 0 end)%)"' -r
+
+test-small: ## Test the /model/scores endpoint using small dataset (requires server to be running)
+	@echo "Testing classification with small dataset..."
+	jq '{items: [to_entries[] | {id: (.key | tostring), workplace_name: .value.workplace_name, workplace_description: .value.workplace_description, offer_title: .value.offer_title, offer_description: .value.offer_description}]}' server/data/test-dataset.json \
 		| curl -X POST http://localhost:8000/model/scores \
 		-H 'Content-Type: application/json' \
 		-d @-
