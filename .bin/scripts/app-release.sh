@@ -20,4 +20,4 @@ fi
 readonly next_version="${1}"
 readonly mode=${2:-$defaultMode}
 
-"$ROOT_DIR"/.bin/mna-lab app:build $next_version $mode production
+"$ROOT_DIR"/.bin/mna app:build $next_version $mode production
