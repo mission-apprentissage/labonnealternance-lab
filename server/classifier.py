@@ -4,10 +4,10 @@ import torch
 import pickle
 import pandas as pd
 from sklearn.model_selection import train_test_split
-# from sklearn.svm import SVC
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import BaggingClassifier
+from sklearn.linear_model import SGDClassifier
 from datasets import Dataset, load_dataset
-import pickle as pickle
+import joblib
 from pathlib import Path
 from tempfile import mkdtemp, mkstemp
 from huggingface_hub import hf_hub_download, HfApi, ModelCard, ModelCardData, EvalResult
@@ -16,7 +16,6 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
 from tqdm import tqdm
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline as ImbPipeline
@@ -59,7 +58,7 @@ class Classifier:
         #self.llm = AutoModel.from_pretrained(lang_model).to(self.device)
         self.llm = SentenceTransformer(lang_model)
         self.version = version
-        self.model_file = f"lba-clf-offer-{version}.pkl"
+        self.model_file = f"model.joblib"
         self.repo_id = f"la-bonne-alternance/{version}"
         self.token = token
         self.classifier = None
@@ -80,28 +79,27 @@ class Classifier:
         Encodes the texts using the language model.
 
         Args:
-            texts (list): list of text to encode
+            texts (list(dict)): list of dict texts to encode with fields :
+                          'workplace_name', 'workplace_description', 
+                          'offer_title', 'offer_description'
 
         Returns:
-            DataFrame: A dataframe containing the embedding(s) of the input text(s).
+            DataFrame: A dataframe containing the concat embedding(s) of the input text(s).
         """
         
         # Prepare dataset
         dataset = pd.DataFrame(texts)
-        sentences = dataset['offer_description'].apply(lambda x: x.split('\n'))
-        dataset['offer_description_1'] = sentences.apply(lambda x: x[:len(x)//2]).apply(lambda x: '\n'.join(x))
-        dataset['offer_description_2'] = sentences.apply(lambda x: x[len(x)//2:]).apply(lambda x: '\n'.join(x))
-
+        
         # Batch encoding texts
         features = pd.DataFrame()
-        for col in ['workplace_name', 'workplace_description', 'offer_title', 'offer_description_1', 'offer_description_2']:
+        for col in ['workplace_name', 'workplace_description', 'offer_title', 'offer_description']:
             embeddings = []
             for i in tqdm(range(0, len(dataset), batch_size), desc=f"- Encoding {col}"):
                 batch = dataset[col][i:i+batch_size]
                 batch_embeddings = self.llm.encode(list(batch))
                 embeddings.extend(batch_embeddings)
-            emb_cols = pd.Series(embeddings).apply(pd.Series).add_prefix(col+'_emb_')
-            features = pd.concat([features, emb_cols], axis=1)
+            embeddings = pd.DataFrame(embeddings).add_prefix(col+'_emb_')
+            features = pd.concat([features, embeddings], axis=1)
         return features
 
     # Classifier function
@@ -110,16 +108,15 @@ class Classifier:
         Predicts the label and scores for the input text using the classifier model.
 
         Args:
-            texts (dict): The input texts to be classified.
+            texts (list(dict)): List of dict texts to be classified.
 
         Returns:
             dict: A dictionary containing the input text, predicted label, and scores for each class.
         """
         features = self.encoding(texts)
         print(f"Features ready: {features.shape}")
-        print(features.columns)
 
-        if len(features.columns) != 3840:
+        if len(features.columns) != 4*self.llm.get_sentence_embedding_dimension():
             logger.warning(f"Features size {len(features.columns)} incompatible on score function")
             return {'error': 'Feature size incompatible', 'status_code': 400}
         
@@ -202,24 +199,10 @@ class Classifier:
         response.raise_for_status()
         dataset = pd.DataFrame(response.json())
         dataset.fillna('', inplace=True)
-
-        # Update labels
-        dataset['label'] = dataset['label'].apply(lambda x: 'unpublish' if x == 'cfa' else 'publish')
-
-        # Split description
-        sentences = dataset['offer_description'].apply(lambda x: x.split('\n'))
-        dataset['offer_description_1'] = sentences.apply(lambda x: x[:len(x)//2]).apply(lambda x: '\n'.join(x))
-        dataset['offer_description_2'] = sentences.apply(lambda x: x[len(x)//2:]).apply(lambda x: '\n'.join(x))
         
         # Batch encoding texts
-        cols = [col for col in dataset.drop(columns=['label', 'offer_description']).columns]
-        for col in cols:
-            embeddings = []
-            for i in tqdm(range(0, len(dataset), batch_size), desc=f"- Encoding {col}"):
-                batch = dataset[col][i:i+batch_size]
-                batch_embeddings = self.llm.encode(list(batch))
-                embeddings.extend(batch_embeddings)
-            dataset[f'{col}_emb'] = embeddings
+        features = self.encoding(dataset.to_dict(orient='records'))
+        dataset = pd.concat([dataset, features], axis=1)
 
         # Update dataset and model version
         self.dataset = dataset
@@ -264,7 +247,7 @@ class Classifier:
         Train a SVC classifier on the given dataset.
 
         Returns:
-            classifier: Trained SVC model.
+            classifier: Trained classifier model.
             train_score: Training score of the model.
             test_score: Testing score of the model.
         """
@@ -280,29 +263,11 @@ class Classifier:
         # Create training dataset
         X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.2, random_state=42, shuffle=True, stratify=labels)
 
-        # PCA optimization
-        # print("- PCA features optimization...")
-        pca = PCA()
-        sc = StandardScaler()
-        X_train_std = sc.fit_transform(X_train)
-        X_pca = pca.fit_transform(X_train_std)
-
-        # Find optimal PCA features
-        threshold = 0.9999
-        pca_features = 0
-        v = 0
-        exp_var_pca = pca.explained_variance_ratio_
-        cum_sum_eigenvalues = np.cumsum(exp_var_pca)
-        while v < threshold:
-            v = cum_sum_eigenvalues[pca_features]
-            pca_features+=1
-
         # Pipeline configuration
         # print("- Configure training pipeline...")
         numeric_transformer = Pipeline(steps=[
             ('imputer', SimpleImputer(strategy='median')),
             ('scaler', StandardScaler()),
-            ('pca', PCA(n_components=pca_features))
             ])
 
         preprocessor = ColumnTransformer(
@@ -311,13 +276,27 @@ class Classifier:
             ],
             verbose_feature_names_out=False)
 
-        smote = SMOTE(random_state=42)
+        smote = SMOTE(random_state=42, sampling_strategy='minority')
 
-        # LR classifier pipeline
+        # Bagging SGD
+        base_estimator = SGDClassifier(class_weight='balanced',
+                                    loss='log_loss',
+                                    penalty='l2',
+                                    alpha=0.0001,
+                                    random_state=42,
+                                    n_jobs=-1)
+        model = BaggingClassifier(
+                    estimator=base_estimator, # Changed base_estimator to estimator
+                    n_estimators=100,
+                    max_samples=0.2,  # Use 20% of samples per estimator
+                    n_jobs=-1,
+                    verbose=0
+                )
+        # Classifier pipeline
         classifier = ImbPipeline(steps=[
             ('preprocessor', preprocessor),
             ('smote', smote),
-            ('lr', LogisticRegression(random_state=42, max_iter=1000))
+            ('model', model)
         ])
 
         classifier.fit(X_train, y_train)
@@ -325,11 +304,11 @@ class Classifier:
         # Evaluate model
         train_score = classifier.score(X_train, y_train)
         test_score = classifier.score(X_test, y_test)
-        logger.info(f"LR classifier trained on {pca_features} PCA features: Train={round(train_score,4)} / Test={round(test_score,4)}")        
+        logger.info(f"Classifier trained on {len(features.columns)} features: Train={round(train_score,4)} / Test={round(test_score,4)}")        
         
         # Update classifier
         self.classifier = classifier
-        logger.info(f"LR classifier {self.version} updated.")        
+        logger.info(f"Classifier {self.version} updated.")        
         return (classifier, train_score, test_score)
     
     def save_model(self):
@@ -340,45 +319,10 @@ class Classifier:
             url: The URL of the saved model.
         """
         logger.info(f"Save model locally...")
-        local_repo = mkdtemp(prefix="lba-")
-        with open(Path(local_repo) / self.model_file, mode="bw") as f:
-            pickle.dump(self.classifier, file=f)
+        local_repo = mkdtemp(prefix="tmp-")
+        model_file = f"model.joblib"
+        joblib.dump(self.classifier, Path(local_repo) / self.model_file)
 
-        """
-        # Create model card
-        logger.info(f"- Create model card...")
-        card_data = ModelCardData(
-            language='fr',
-            license='mit',
-            library_name='la-bonne-alternance/2025-08-06',
-            tags=['text-classification', 'camembert'],
-            datasets=['la-bonne-alternance/2025-08-06'],
-            metrics=['f1-score'],
-        )
-        card = ModelCard.from_template(
-            card_data,
-            model_description='This model does x + y...'
-        )
-
-        # Add metrics to model card
-        print(f"- Add metrics to model card...")
-        y_pred = model.predict(X_test)
-
-        eval_descr = (
-            "The model is evaluated on test data using accuracy and F1-score with "
-            "weighted average."
-        )
-        accuracy = accuracy_score(y_test, y_pred)
-        f1 = f1_score(y_test, y_pred, average="weighted")
-
-        cm = confusion_matrix(y_test, y_pred, labels=model.classes_)
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=model.classes_).plot()
-        disp.figure_.savefig(Path(local_repo) / "confusion_matrix.png")
-
-        # Save model card
-        print(f"- Save model card...")
-        card.save(Path(local_repo) / "README.md")
-        """
         api = HfApi()
 
         # Delete previous repo with the same name
@@ -399,7 +343,7 @@ class Classifier:
             repo_id=self.repo_id,
             token=self.token,
             repo_type="model",
-            commit_message=f"pushing model '{self.version}' LR with camembert v2 embeddings",
+            commit_message=f"pushing model '{self.version}'",
         )
         url = f"https://huggingface.co/{self.repo_id}"
         logger.info(f"Model ready on: {url}")
@@ -416,9 +360,7 @@ class Classifier:
         # Download model
         logger.info(f"Downloading model: {self.repo_id}")
         model_dump = hf_hub_download(repo_id=self.repo_id, filename=self.model_file, token=self.token)
-        # print(f"- Model downloaded to: {model_dump}")
 
-        # Reload pickle model
-        with open(model_dump, 'rb') as f:
-            self.classifier = pickle.load(f)
+        # Reload joblib model
+        self.classifier = joblib.load(model_dump)
         logger.info(f"Classifier model ready.")
