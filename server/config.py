@@ -24,7 +24,7 @@ LAB_ADMIN_TOKEN = os.getenv('LAB_ADMIN_TOKEN')
 # Allowlist of hosts the training endpoint is allowed to fetch from (SSRF guard).
 # Comma-separated override via TRAIN_ALLOWED_HOSTS; defaults to the official LBA API host.
 TRAIN_ALLOWED_HOSTS = {
-    host.strip()
+    host.strip().lower()
     for host in os.getenv(
         'TRAIN_ALLOWED_HOSTS',
         'labonnealternance.apprentissage.beta.gouv.fr',

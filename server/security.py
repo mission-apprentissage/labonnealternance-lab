@@ -30,8 +30,11 @@ def require_admin_token(view):
             logger.error("LAB_ADMIN_TOKEN is not configured; refusing protected request")
             return jsonify({'error': 'Server misconfigured: authentication unavailable'}), 503
 
-        header = request.headers.get('Authorization', '')
-        provided = header[7:] if header.startswith('Bearer ') else header
+        header = request.headers.get('Authorization', '').strip()
+        if header.lower().startswith('bearer '):
+            provided = header[len('bearer '):].strip()
+        else:
+            provided = header
 
         if not provided or not hmac.compare_digest(provided, LAB_ADMIN_TOKEN):
             logger.warning("Unauthorized request on %s", request.path)
@@ -76,9 +79,14 @@ def validate_public_url(url):
     if host not in TRAIN_ALLOWED_HOSTS:
         raise UnsafeUrlError(f"host '{host}' is not in the allowlist")
 
+    # Restrict to the default HTTPS port: an allowlisted host must not be reachable
+    # on arbitrary ports (would expose other internal services bound to that host).
+    if parts.port is not None and parts.port != 443:
+        raise UnsafeUrlError(f"port '{parts.port}' is not allowed")
+
     # Resolve DNS and ensure no resolved address points to a non-public range.
     try:
-        infos = socket.getaddrinfo(host, parts.port or 443, proto=socket.IPPROTO_TCP)
+        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
     except socket.gaierror as exc:
         raise UnsafeUrlError(f"could not resolve host '{host}'") from exc
 
