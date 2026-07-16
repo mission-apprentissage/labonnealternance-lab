@@ -194,10 +194,13 @@ class Classifier:
         if not LBA_API_TOKEN:
             raise ValueError("LBA_API_TOKEN is required to load the online classification dataset")
 
+        # allow_redirects=False: the endpoint is validated upstream (SSRF guard), but a
+        # redirect could point to an internal/loopback host and bypass that validation.
         response = requests.get(
             endpoint,
             headers={"Authorization": LBA_API_TOKEN},
             timeout=(5, None),
+            allow_redirects=False,
         )
         response.raise_for_status()
         dataset = pd.DataFrame(response.json())
