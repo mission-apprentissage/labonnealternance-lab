@@ -1,6 +1,8 @@
 import logging
 from flask import request, jsonify
 
+from security import require_admin_token, validate_public_url, UnsafeUrlError
+
 logger = logging.getLogger(__name__)
 
 
@@ -8,6 +10,7 @@ def register_routes(app, get_model):
     """Register training routes."""
 
     @app.route('/model/train', methods=['POST'])
+    @require_admin_token
     def train_model():
         if not request.is_json:
             logger.warning("Non-JSON request received on /model/train")
@@ -18,11 +21,22 @@ def register_routes(app, get_model):
         version = data.get('version')
         endpoint = data.get('endpoint')
 
+        # SSRF guard: validate the user-supplied endpoint before any fetch.
+        if endpoint is not None:
+            try:
+                endpoint = validate_public_url(endpoint)
+            except UnsafeUrlError as exc:
+                logger.warning("Rejected unsafe endpoint on /model/train: %s", exc)
+                return jsonify({'error': f'Invalid endpoint: {exc}'}), 400
+
         # Load model
         model = get_model(version)
 
-        # Create and save dataset
-        dataset = model.create_dataset_online(version, endpoint)
+        # Create and save dataset (fall back to the default official endpoint when omitted)
+        if endpoint is None:
+            dataset = model.create_dataset_online(version)
+        else:
+            dataset = model.create_dataset_online(version, endpoint)
         if len(dataset) > 0:
             dataset_url = model.save_dataset()
             logger.info(f"Saved dataset '{version}' to '{dataset_url}'")
